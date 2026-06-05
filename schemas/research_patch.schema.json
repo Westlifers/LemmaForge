@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lemmaforge.local/schemas/research_patch.schema.json",
+  "title": "ResearchPatch",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["patch_type", "metadata", "fragments"],
+  "properties": {
+    "patch_type": { "const": "ResearchPatch" },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_kind", "created_by", "requires_user_review"],
+      "properties": {
+        "source_kind": { "type": "string" },
+        "topic_hint": { "type": ["string", "null"] },
+        "created_by": { "type": "string" },
+        "requires_user_review": { "type": "boolean", "const": true }
+      }
+    },
+    "fragments": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/fragment" }
+    },
+    "relations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/relation" },
+      "default": []
+    },
+    "source_pointers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/source_pointer" },
+      "default": []
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    }
+  },
+  "$defs": {
+    "fragment_type": {
+      "enum": [
+        "Definition",
+        "Proposition",
+        "Lemma",
+        "Theorem",
+        "Corollary",
+        "Proof",
+        "ProofSketch",
+        "Example",
+        "Counterexample",
+        "Construction",
+        "Question",
+        "Conjecture",
+        "Remark",
+        "TODO",
+        "PaperNote",
+        "ReadingNote",
+        "ExternalDefinition",
+        "ExternalTheorem",
+        "ExternalNotation",
+        "LiteratureClaim",
+        "ContextNote"
+      ]
+    },
+    "origin_classification": {
+      "enum": [
+        "user_original",
+        "assistant_generated",
+        "external_source",
+        "mixed",
+        "unknown"
+      ]
+    },
+    "exactness": {
+      "enum": [
+        "quote",
+        "close_paraphrase",
+        "paraphrase",
+        "interpretation",
+        "reconstruction",
+        "original"
+      ]
+    },
+    "relation_kind": {
+      "enum": [
+        "depends_on",
+        "uses",
+        "proves",
+        "proof_of",
+        "refines",
+        "replaces",
+        "contradicts",
+        "generalizes",
+        "specializes_to",
+        "is_example_of",
+        "is_counterexample_to",
+        "cites",
+        "quotes",
+        "paraphrases",
+        "restates",
+        "adopts_notation_from",
+        "depends_on_notation",
+        "inspired_by",
+        "generalizes_external_result",
+        "specializes_external_result",
+        "questions_external_claim",
+        "compares_with",
+        "came_from"
+      ]
+    },
+    "source_type": {
+      "enum": [
+        "paper",
+        "book",
+        "lecture_note",
+        "webpage",
+        "conversation",
+        "personal_note",
+        "unknown"
+      ]
+    },
+    "fragment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "local_id",
+        "type",
+        "title",
+        "status",
+        "origin_classification",
+        "exactness",
+        "body"
+      ],
+      "properties": {
+        "local_id": { "type": "string", "minLength": 1 },
+        "type": { "$ref": "#/$defs/fragment_type" },
+        "title": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["raw", "candidate"] },
+        "origin_classification": { "$ref": "#/$defs/origin_classification" },
+        "exactness": { "$ref": "#/$defs/exactness" },
+        "body": { "type": "string", "minLength": 1 },
+        "assumptions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "conclusion": { "type": ["string", "null"] },
+        "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "source_excerpt": { "type": ["string", "null"] }
+      }
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "kind", "target"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "kind": { "$ref": "#/$defs/relation_kind" },
+        "target": { "type": "string", "minLength": 1 },
+        "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source_type": { "$ref": "#/$defs/source_type" },
+        "title": { "type": ["string", "null"] },
+        "authors": { "type": ["string", "null"] },
+        "year": { "type": ["integer", "null"], "minimum": 0, "maximum": 3000 },
+        "citekey": { "type": ["string", "null"] },
+        "zotero_item_key": { "type": ["string", "null"] },
+        "url": { "type": ["string", "null"] }
+      }
+    },
+    "source_pointer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fragment_local_id", "exactness"],
+      "properties": {
+        "fragment_local_id": { "type": "string", "minLength": 1 },
+        "citekey": { "type": ["string", "null"] },
+        "source": { "anyOf": [{ "$ref": "#/$defs/source" }, { "type": "null" }] },
+        "locator": { "type": ["string", "null"] },
+        "exactness": { "$ref": "#/$defs/exactness" },
+        "quote_text": { "type": ["string", "null"] },
+        "note": { "type": ["string", "null"] }
+      }
+    }
+  }
+}
+

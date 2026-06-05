@@ -1,0 +1,29 @@
+﻿{
+  "patch_type": "ResearchPatch",
+  "metadata": {
+    "source_kind": "chatgpt_excerpt",
+    "topic_hint": "Example topic",
+    "created_by": "codex_import_agent",
+    "requires_user_review": true
+  },
+  "fragments": [
+    {
+      "local_id": "context_note_example",
+      "type": "ContextNote",
+      "title": "Example imported note",
+      "status": "candidate",
+      "origin_classification": "assistant_generated",
+      "exactness": "interpretation",
+      "body": "This is a short candidate note awaiting review.",
+      "assumptions": [],
+      "conclusion": null,
+      "confidence": 0.5,
+      "source_excerpt": "This is a short candidate note awaiting review."
+    }
+  ],
+  "relations": [],
+  "source_pointers": [],
+  "warnings": [
+    "Example patch only."
+  ]
+}

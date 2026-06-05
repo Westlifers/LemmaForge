@@ -1,0 +1,2 @@
+"""LemmaForge CLI package."""
+

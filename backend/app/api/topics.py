@@ -1,0 +1,51 @@
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from app.db import get_db
+from app.schemas.fragment import TopicCreate, TopicRead, TopicUpdate
+from app.services.topic_service import (
+    create_topic,
+    delete_topic,
+    get_topic,
+    list_topics,
+    update_topic,
+)
+
+router = APIRouter(prefix="/api/topics", tags=["topics"])
+
+
+@router.get("", response_model=list[TopicRead])
+def api_list_topics(db: Session = Depends(get_db)):
+    return list_topics(db)
+
+
+@router.post("", response_model=TopicRead, status_code=201)
+def api_create_topic(payload: TopicCreate, db: Session = Depends(get_db)):
+    return create_topic(db, payload)
+
+
+@router.get("/{topic_id}", response_model=TopicRead)
+def api_get_topic(topic_id: str, db: Session = Depends(get_db)):
+    topic = get_topic(db, topic_id)
+    if topic is None:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    return topic
+
+
+@router.patch("/{topic_id}", response_model=TopicRead)
+def api_update_topic(topic_id: str, payload: TopicUpdate, db: Session = Depends(get_db)):
+    topic = get_topic(db, topic_id)
+    if topic is None:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    return update_topic(db, topic, payload)
+
+
+@router.delete("/{topic_id}", status_code=204)
+def api_delete_topic(topic_id: str, db: Session = Depends(get_db)):
+    topic = get_topic(db, topic_id)
+    if topic is None:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    delete_topic(db, topic)
+    return None
