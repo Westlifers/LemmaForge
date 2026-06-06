@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
@@ -73,3 +76,37 @@ def test_invalid_relation_kind_is_rejected():
     with pytest.raises(ValidationError):
         ResearchPatch.model_validate(data)
 
+
+def test_research_patch_schema_is_strict_response_format_compatible():
+    schema_path = Path(__file__).resolve().parents[2] / "schemas" / "research_patch.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    problems: list[str] = []
+
+    def walk(node: object, path: str) -> None:
+        if isinstance(node, dict):
+            if "default" in node:
+                problems.append(f"{path}: default is not allowed")
+            properties = node.get("properties")
+            if node.get("type") == "object" and isinstance(properties, dict):
+                missing = sorted(set(properties) - set(node.get("required") or []))
+                if missing:
+                    problems.append(f"{path}: missing required keys {missing}")
+            for key, value in node.items():
+                walk(value, f"{path}.{key}")
+        elif isinstance(node, list):
+            for index, value in enumerate(node):
+                walk(value, f"{path}[{index}]")
+
+    walk(schema, "$")
+
+    assert problems == []
+
+
+def test_skill_schema_matches_root_schema():
+    repo_root = Path(__file__).resolve().parents[2]
+    root_schema = json.loads((repo_root / "schemas" / "research_patch.schema.json").read_text())
+    skill_schema = json.loads(
+        (repo_root / ".codex" / "skills" / "research-import" / "research_patch.schema.json").read_text()
+    )
+
+    assert skill_schema == root_schema

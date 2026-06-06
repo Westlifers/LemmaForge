@@ -26,6 +26,7 @@
             <span class="badge">{{ fragment.type }}</span>
             <span class="status" :data-status="fragment.status">{{ fragment.status }}</span>
             <span class="chip" data-chip="origin">Origin: {{ fragment.origin_classification }}</span>
+            <span v-if="isAiExtracted" class="chip" data-chip="ai">AI extracted</span>
             <span class="chip" data-chip="exactness">Exactness: {{ fragment.exactness }}</span>
             <span v-if="fragment.topic_id" class="chip" data-chip="topic">Topic: {{ topicTitle(fragment.topic_id) }}</span>
           </div>
@@ -139,7 +140,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { AlertTriangle, ArchiveX, ArrowLeft, Pencil, Plus, Trash2, X } from "lucide-vue-next";
 import { api } from "../api/client";
@@ -194,6 +195,9 @@ const newRelation = ref({
   target: "",
   confidence: null as number | null
 });
+const isAiExtracted = computed(() =>
+  fragment.value ? ["assistant_generated", "mixed"].includes(fragment.value.origin_classification) : false
+);
 
 async function load() {
   error.value = "";

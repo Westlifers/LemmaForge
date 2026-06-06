@@ -28,6 +28,17 @@ class FragmentUpdate(BaseModel):
     change_note: str | None = None
 
 
+class FragmentBulkUpdate(BaseModel):
+    ids: list[str] = Field(min_length=1)
+    topic_id: str | None = None
+    status: FragmentStatus | None = None
+    change_note: str | None = None
+
+
+class FragmentBulkDeleteResult(BaseModel):
+    deleted_ids: list[str]
+
+
 class FragmentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

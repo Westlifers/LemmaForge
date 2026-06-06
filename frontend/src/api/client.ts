@@ -1,4 +1,10 @@
 import type {
+  AIApplyRelationsResult,
+  AICreateDraftsRequest,
+  AIDraftCreationResult,
+  AIExtractRequest,
+  AIExtractResult,
+  AIExtractJob,
   ContextPack,
   ContextPackItemInput,
   DuplicateSuggestion,
@@ -67,8 +73,22 @@ export const api = {
       body: JSON.stringify(payload)
     });
   },
+  bulkUpdateFragments(payload: { ids: string[]; topic_id?: string | null; status?: string | null; change_note?: string | null }) {
+    return request<Fragment[]>("/api/fragments/bulk", {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload)
+    });
+  },
   deleteFragment(id: string) {
     return request<void>(`/api/fragments/${id}`, { method: "DELETE" });
+  },
+  bulkDeleteFragments(ids: string[]) {
+    return request<{ deleted_ids: string[] }>("/api/fragments/bulk", {
+      method: "DELETE",
+      headers: jsonHeaders,
+      body: JSON.stringify(ids)
+    });
   },
   listVersions(id: string) {
     return request<FragmentVersion[]>(`/api/fragments/${id}/versions`);
@@ -126,6 +146,37 @@ export const api = {
       method: "POST",
       headers: jsonHeaders,
       body: JSON.stringify(patch)
+    });
+  },
+  aiExtract(payload: AIExtractRequest) {
+    return request<AIExtractResult>("/api/import/ai/extract", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload)
+    });
+  },
+  startAiExtractJob(payload: AIExtractRequest) {
+    return request<AIExtractJob>("/api/import/ai/extraction-jobs", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload)
+    });
+  },
+  getAiExtractJob(jobId: string) {
+    return request<AIExtractJob>(`/api/import/ai/extraction-jobs/${jobId}`);
+  },
+  aiCreateDrafts(payload: AICreateDraftsRequest) {
+    return request<AIDraftCreationResult>("/api/import/ai/create-drafts", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload)
+    });
+  },
+  aiApplyRelations(batchId: string, proposal_ids: string[]) {
+    return request<AIApplyRelationsResult>(`/api/import/ai/${batchId}/apply-relations`, {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({ proposal_ids })
     });
   },
   listImportBatches() {

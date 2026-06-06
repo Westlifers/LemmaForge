@@ -183,10 +183,76 @@ export interface ImportBatch {
   patch: ResearchPatch | null;
   warnings: string[];
   commit_result: ImportCommitResult | null;
+  ai_draft_result: AIDraftCreationResult | null;
+  relation_proposals: AIRelationProposal[];
   review_note: string | null;
   created_at: string;
   updated_at: string;
   reviewed_at: string | null;
+}
+
+export interface AIExtractRequest {
+  raw_excerpt: string;
+  topic_hint?: string | null;
+  citekey?: string | null;
+  locator?: string | null;
+  source_kind?: string;
+  timeout_seconds?: number;
+}
+
+export interface AIExtractResult {
+  available: boolean;
+  preview: ImportPreview | null;
+  batch: ImportBatch | null;
+  error: string | null;
+  logs: string[];
+}
+
+export interface AIExtractJob {
+  job_id: string;
+  status: "queued" | "running" | "succeeded" | "failed";
+  logs: string[];
+  result: AIExtractResult | null;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AICreateDraftsRequest {
+  batch_id?: string | null;
+  patch?: ResearchPatch | null;
+  raw_excerpt?: string;
+  topic_hint?: string | null;
+  citekey?: string | null;
+  locator?: string | null;
+  selected_local_ids?: string[] | null;
+}
+
+export interface AIDraftCreationResult {
+  batch_id: string;
+  fragment_ids: string[];
+  local_to_fragment_id: Record<string, string>;
+  source_pointer_ids: string[];
+  relation_proposals: AIRelationProposal[];
+  warnings: string[];
+}
+
+export interface AIRelationProposal {
+  proposal_id: string;
+  source: string;
+  kind: string;
+  target: string;
+  confidence: number | null;
+  source_fragment_id: string | null;
+  target_fragment_id: string | null;
+  applied_relation_id: string | null;
+}
+
+export interface AIApplyRelationsResult {
+  batch_id: string;
+  relation_ids: string[];
+  relation_proposals: AIRelationProposal[];
+  warnings: string[];
 }
 
 export interface DuplicateSuggestion {

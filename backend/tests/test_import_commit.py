@@ -9,7 +9,14 @@ from app.models.source import Source, SourcePointer
 from app.schemas.fragment import FragmentCreate, FragmentUpdate, TopicCreate
 from app.schemas.relation import RelationCreate
 from app.schemas.research_patch import ResearchPatch
-from app.services.fragment_service import create_fragment, delete_fragment, list_fragments, update_fragment
+from app.services.fragment_service import (
+    bulk_delete_fragments,
+    bulk_update_fragments,
+    create_fragment,
+    delete_fragment,
+    list_fragments,
+    update_fragment,
+)
 from app.services.import_service import commit_patch
 from app.services.markdown_vault import fragment_markdown_path
 from app.services.relation_service import create_relation
@@ -218,3 +225,71 @@ def test_delete_fragment_removes_related_records_and_markdown(db_session):
     assert db.execute(select(SourcePointer)).scalars().all() == []
     assert db.execute(select(ContextPackItem)).scalars().all() == []
     assert not markdown_path.exists()
+
+
+def test_bulk_update_fragments_assigns_topic(db_session):
+    db, _tmp_path = db_session
+    topic = create_topic(db, TopicCreate(title="Batch topic"))
+    first = create_fragment(
+        db,
+        FragmentCreate(
+            type="Definition",
+            title="First batch fragment",
+            status="draft",
+            body="First body.",
+            origin_classification="user_original",
+            exactness="original",
+        ),
+    )
+    second = create_fragment(
+        db,
+        FragmentCreate(
+            type="Remark",
+            title="Second batch fragment",
+            status="draft",
+            body="Second body.",
+            origin_classification="user_original",
+            exactness="original",
+        ),
+    )
+
+    updated = bulk_update_fragments(
+        db,
+        [first.id, second.id],
+        FragmentUpdate(topic_id=topic.id, change_note="Batch assigned topic."),
+    )
+
+    assert {fragment.topic_id for fragment in updated} == {topic.id}
+    assert {fragment.id for fragment in list_fragments(db, topic_id=topic.id)} == {first.id, second.id}
+
+
+def test_bulk_delete_fragments_deletes_selected_fragments(db_session):
+    db, _tmp_path = db_session
+    first = create_fragment(
+        db,
+        FragmentCreate(
+            type="Definition",
+            title="First deleted fragment",
+            status="rejected",
+            body="Delete first.",
+            origin_classification="user_original",
+            exactness="original",
+        ),
+    )
+    second = create_fragment(
+        db,
+        FragmentCreate(
+            type="Remark",
+            title="Second deleted fragment",
+            status="rejected",
+            body="Delete second.",
+            origin_classification="user_original",
+            exactness="original",
+        ),
+    )
+
+    deleted_ids = bulk_delete_fragments(db, [first.id, second.id])
+
+    assert deleted_ids == [first.id, second.id]
+    assert db.get(Fragment, first.id) is None
+    assert db.get(Fragment, second.id) is None

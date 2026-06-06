@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from .config import ensure_local_directories, get_settings
@@ -61,8 +61,29 @@ def init_db() -> None:
 
     ensure_local_directories()
     Base.metadata.create_all(bind=get_engine())
+    _ensure_lightweight_sqlite_migrations()
     db = get_session_factory()()
     try:
         ensure_search_indexes(db)
     finally:
         db.close()
+
+
+def _ensure_lightweight_sqlite_migrations() -> None:
+    engine = get_engine()
+    if engine.dialect.name != "sqlite":
+        return
+    inspector = inspect(engine)
+    if "import_batches" not in inspector.get_table_names():
+        return
+    existing_columns = {column["name"] for column in inspector.get_columns("import_batches")}
+    pending_columns = {
+        "ai_draft_result_json": "TEXT",
+        "relation_proposals_json": "TEXT",
+    }
+    with engine.begin() as connection:
+        for column_name, column_type in pending_columns.items():
+            if column_name not in existing_columns:
+                connection.execute(
+                    text(f"ALTER TABLE import_batches ADD COLUMN {column_name} {column_type}")
+                )

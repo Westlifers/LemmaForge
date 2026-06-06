@@ -21,10 +21,11 @@ class ImportBatch(Base):
     patch_json: Mapped[str | None] = mapped_column(Text)
     warnings_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
     commit_result_json: Mapped[str | None] = mapped_column(Text)
+    ai_draft_result_json: Mapped[str | None] = mapped_column(Text)
+    relation_proposals_json: Mapped[str | None] = mapped_column(Text)
     review_note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-

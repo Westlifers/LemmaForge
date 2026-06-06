@@ -127,7 +127,36 @@ def update_fragment(
     return fragment
 
 
-def delete_fragment(db: Session, fragment: Fragment) -> None:
+def bulk_update_fragments(
+    db: Session,
+    fragment_ids: list[str],
+    payload: FragmentUpdate,
+) -> list[Fragment]:
+    unique_ids = list(dict.fromkeys(fragment_ids))
+    fragments = [fragment for fragment in (db.get(Fragment, fragment_id) for fragment_id in unique_ids) if fragment]
+    for fragment in fragments:
+        update_fragment(db, fragment, payload, commit=False, write_markdown=False)
+    db.commit()
+    for fragment in fragments:
+        db.refresh(fragment)
+        write_fragment_markdown(fragment)
+    return fragments
+
+
+def bulk_delete_fragments(db: Session, fragment_ids: list[str]) -> list[str]:
+    unique_ids = list(dict.fromkeys(fragment_ids))
+    fragments = [fragment for fragment in (db.get(Fragment, fragment_id) for fragment_id in unique_ids) if fragment]
+    deleted_ids: list[str] = []
+    for fragment in fragments:
+        _delete_fragment_records(db, fragment)
+        deleted_ids.append(fragment.id)
+    db.commit()
+    for fragment in fragments:
+        delete_fragment_markdown(fragment)
+    return deleted_ids
+
+
+def _delete_fragment_records(db: Session, fragment: Fragment) -> None:
     fragment_id = fragment.id
     delete_fragment_index(db, fragment_id)
     db.execute(delete(ContextPackItem).where(ContextPackItem.fragment_id == fragment_id))
@@ -142,6 +171,10 @@ def delete_fragment(db: Session, fragment: Fragment) -> None:
     db.execute(delete(SourcePointer).where(SourcePointer.fragment_id == fragment_id))
     db.execute(delete(FragmentVersion).where(FragmentVersion.fragment_id == fragment_id))
     db.delete(fragment)
+
+
+def delete_fragment(db: Session, fragment: Fragment) -> None:
+    _delete_fragment_records(db, fragment)
     db.commit()
     delete_fragment_markdown(fragment)
 

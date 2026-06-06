@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.schemas.fragment import (
+    FragmentBulkDeleteResult,
+    FragmentBulkUpdate,
     FragmentCreate,
     FragmentRead,
     FragmentUpdate,
@@ -13,6 +15,8 @@ from app.schemas.fragment import (
 )
 from app.schemas.source import SourcePointerRead
 from app.services.fragment_service import (
+    bulk_delete_fragments,
+    bulk_update_fragments,
     create_fragment,
     create_fragment_version,
     delete_fragment,
@@ -20,6 +24,7 @@ from app.services.fragment_service import (
     list_fragments,
     update_fragment,
 )
+from app.models.fragment import Topic
 from app.services.markdown_vault import write_fragment_markdown
 from app.services.source_service import list_source_pointers_for_fragment
 
@@ -52,6 +57,31 @@ def api_list_fragments(
 @router.post("", response_model=FragmentRead, status_code=201)
 def api_create_fragment(payload: FragmentCreate, db: Session = Depends(get_db)):
     return create_fragment(db, payload)
+
+
+@router.patch("/bulk", response_model=list[FragmentRead])
+def api_bulk_update_fragments(payload: FragmentBulkUpdate, db: Session = Depends(get_db)):
+    missing = [fragment_id for fragment_id in payload.ids if get_fragment(db, fragment_id) is None]
+    if missing:
+        raise HTTPException(status_code=404, detail=f"Unknown fragments: {', '.join(missing)}")
+    if "topic_id" in payload.model_fields_set and payload.topic_id and db.get(Topic, payload.topic_id) is None:
+        raise HTTPException(status_code=400, detail=f"Unknown topic: {payload.topic_id}")
+
+    changes: dict[str, object] = {}
+    if "topic_id" in payload.model_fields_set:
+        changes["topic_id"] = payload.topic_id
+    if payload.status is not None:
+        changes["status"] = payload.status
+    if payload.change_note is not None:
+        changes["change_note"] = payload.change_note
+    if not changes:
+        raise HTTPException(status_code=400, detail="No bulk changes requested")
+    return bulk_update_fragments(db, payload.ids, FragmentUpdate(**changes))
+
+
+@router.delete("/bulk", response_model=FragmentBulkDeleteResult)
+def api_bulk_delete_fragments(ids: list[str] = Body(...), db: Session = Depends(get_db)):
+    return FragmentBulkDeleteResult(deleted_ids=bulk_delete_fragments(db, ids))
 
 
 @router.get("/{fragment_id}", response_model=FragmentRead)

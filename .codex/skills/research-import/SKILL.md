@@ -1,80 +1,116 @@
-﻿# Research Import Skill
+---
+name: research-import
+description: Convert mathematical research notes, ChatGPT conversations, or paper-reading notes into LemmaForge ResearchPatch JSON.
+---
 
-You convert short mathematical research notes, ChatGPT excerpts, or paper-reading notes into a structured ResearchPatch.
+# Research Import Skill
 
-## Goal
+Convert the excerpt into one valid `ResearchPatch` JSON object for LemmaForge. The patch is only a proposal: LemmaForge validates it, then the user chooses which extracted fragments to save as database drafts.
 
-Given a natural-language excerpt, produce a JSON object conforming to `research_patch.schema.json`.
+## Hard Constraints
 
-## Fragment Types
+- Return JSON only. No Markdown, no code fences, no commentary.
+- Conform to `research_patch.schema.json`.
+- Include every schema field. Use `null` for absent nullable values and `[]` for empty arrays.
+- Patch fragment status must be only `raw` or `candidate`.
+- Never output database-only statuses: `draft`, `working`, `stable`, `superseded`, or `rejected`.
+- Use `metadata.topic_hint`; do not invent `topic_id`.
+- Do not invent existing database fragment IDs.
+- Relations must use patch `local_id`s, unless the input explicitly provides a real existing fragment ID.
+- Source pointers must include either `citekey` or inline `source` metadata when external provenance is asserted.
 
-Allowed fragment types:
+## Extraction Policy
 
-- Definition
-- Proposition
-- Lemma
-- Theorem
-- Corollary
-- Proof
-- ProofSketch
-- Example
-- Counterexample
-- Construction
-- Question
-- Conjecture
-- Remark
-- TODO
-- PaperNote
-- ReadingNote
-- ExternalDefinition
-- ExternalTheorem
-- ExternalNotation
-- LiteratureClaim
-- ContextNote
+Extract useful mathematical units conservatively:
 
-## Status Policy
+- ambient setting or notation -> `ContextNote` or `ExternalNotation`
+- definition -> `Definition`
+- smaller claim -> `Proposition`
+- major stated result -> `Theorem`
+- proof idea -> `ProofSketch`
+- construction -> `Construction`
+- limitation or caveat -> `Remark`
+- open problem -> `Question`
+- speculative claim -> `Conjecture`
 
-All imported fragments must have status `raw` or `candidate`.
+Do not merge distinct mathematical roles into one fragment when the excerpt clearly separates them. Do not over-split one coherent definition unless it names separate subconditions.
 
-Never assign `stable` during import.
+Use `candidate` for clear definitions, claims, constructions, or questions. Use `raw` for vague, fragmentary, mostly contextual, or uncertain material.
 
 ## Mathematical Fidelity
 
-Preserve the mathematical content of the source.
+- Preserve hypotheses, assumptions, and uncertainty.
+- Do not strengthen claims.
+- Do not invent proofs or missing arguments.
+- Do not turn tentative constructions into established theorems.
+- If assumptions are placeholders, such as "under suitable assumptions" or "this should produce", keep that wording and add a warning.
+- For theorem-like fragments, put hypotheses in `assumptions`, the conclusion in `conclusion`, and the full statement in `body`.
 
-Do not strengthen hypotheses.
+## Provenance
 
-Do not silently simplify away assumptions.
+Origin values:
 
-Do not invent proofs.
+- `user_original`: presented as the user's own note, idea, conjecture, construction, or proof attempt
+- `assistant_generated`: clearly from an assistant response
+- `external_source`: quote, paraphrase, summary, or reconstruction of literature
+- `mixed`: explicitly combines user, assistant, or external sources
+- `unknown`: source cannot be inferred
 
-If the source is ambiguous, add a warning.
+Exactness values:
 
-## Provenance Policy
+- `quote`: direct quotation
+- `close_paraphrase`: close wording or sentence structure
+- `paraphrase`: same content in different wording
+- `interpretation`: reframed or extracted idea
+- `reconstruction`: implicit mathematics reconstructed from context
+- `original`: presented as original rather than sourced
 
-Classify origin as one of:
+If external material lacks citation metadata, add a warning.
 
-- user_original
-- assistant_generated
-- external_source
-- mixed
-- unknown
+## Relations
 
-Classify exactness as one of:
+Relations are proposals only. Output high-confidence structural relations among extracted fragments:
 
-- quote
-- close_paraphrase
-- paraphrase
-- interpretation
-- reconstruction
-- original
+- theorem-like fragments usually `depends_on` relevant definitions
+- constructions usually `uses` context or notation
+- proof sketches usually `proof_of` their claim
+- remarks/questions usually `depends_on`, `refines`, or `compares_with` the claim they concern
+- notation use may `depends_on_notation` or `adopts_notation_from`
 
-External source material requires citation metadata whenever available.
+Use only relation kinds allowed by the schema. Do not output unsupported kinds such as `questions`. Do not relate fragments to source pointers; provenance belongs in `source_pointers`.
 
-## Output Policy
+Every relation must include `confidence`.
 
-Return only valid JSON.
+## Required Empty Fields
 
-No Markdown.
+Every fragment must include:
 
-No commentary outside JSON.
+- `assumptions`
+- `conclusion`
+- `confidence`
+- `source_excerpt`
+
+Every source pointer must include:
+
+- `citekey`
+- `source`
+- `locator`
+- `quote_text`
+- `note`
+
+Every inline source object must include:
+
+- `source_type`
+- `title`
+- `authors`
+- `year`
+- `citekey`
+- `zotero_item_key`
+- `url`
+
+## Style
+
+- Use stable lowercase snake_case `local_id`s.
+- Titles should be clear and should not overstate certainty.
+- For tentative content, include words like `tentative`, `conditional`, `possible`, `expected`, or `candidate`.
+- Warnings should be concise and actionable.

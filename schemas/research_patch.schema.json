@@ -4,18 +4,18 @@
   "title": "ResearchPatch",
   "type": "object",
   "additionalProperties": false,
-  "required": ["patch_type", "metadata", "fragments"],
+  "required": ["patch_type", "metadata", "fragments", "relations", "source_pointers", "warnings"],
   "properties": {
-    "patch_type": { "const": "ResearchPatch" },
+    "patch_type": { "enum": ["ResearchPatch"] },
     "metadata": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["source_kind", "created_by", "requires_user_review"],
+      "required": ["source_kind", "topic_hint", "created_by", "requires_user_review"],
       "properties": {
         "source_kind": { "type": "string" },
         "topic_hint": { "type": ["string", "null"] },
         "created_by": { "type": "string" },
-        "requires_user_review": { "type": "boolean", "const": true }
+        "requires_user_review": { "type": "boolean" }
       }
     },
     "fragments": {
@@ -24,18 +24,15 @@
     },
     "relations": {
       "type": "array",
-      "items": { "$ref": "#/$defs/relation" },
-      "default": []
+      "items": { "$ref": "#/$defs/relation" }
     },
     "source_pointers": {
       "type": "array",
-      "items": { "$ref": "#/$defs/source_pointer" },
-      "default": []
+      "items": { "$ref": "#/$defs/source_pointer" }
     },
     "warnings": {
       "type": "array",
-      "items": { "type": "string" },
-      "default": []
+      "items": { "type": "string" }
     }
   },
   "$defs": {
@@ -131,7 +128,11 @@
         "status",
         "origin_classification",
         "exactness",
-        "body"
+        "body",
+        "assumptions",
+        "conclusion",
+        "confidence",
+        "source_excerpt"
       ],
       "properties": {
         "local_id": { "type": "string", "minLength": 1 },
@@ -143,8 +144,7 @@
         "body": { "type": "string", "minLength": 1 },
         "assumptions": {
           "type": "array",
-          "items": { "type": "string" },
-          "default": []
+          "items": { "type": "string" }
         },
         "conclusion": { "type": ["string", "null"] },
         "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
@@ -154,7 +154,7 @@
     "relation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["source", "kind", "target"],
+      "required": ["source", "kind", "target", "confidence"],
       "properties": {
         "source": { "type": "string", "minLength": 1 },
         "kind": { "$ref": "#/$defs/relation_kind" },
@@ -165,6 +165,15 @@
     "source": {
       "type": "object",
       "additionalProperties": false,
+      "required": [
+        "source_type",
+        "title",
+        "authors",
+        "year",
+        "citekey",
+        "zotero_item_key",
+        "url"
+      ],
       "properties": {
         "source_type": { "$ref": "#/$defs/source_type" },
         "title": { "type": ["string", "null"] },
@@ -178,7 +187,15 @@
     "source_pointer": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["fragment_local_id", "exactness"],
+      "required": [
+        "fragment_local_id",
+        "citekey",
+        "source",
+        "locator",
+        "exactness",
+        "quote_text",
+        "note"
+      ],
       "properties": {
         "fragment_local_id": { "type": "string", "minLength": 1 },
         "citekey": { "type": ["string", "null"] },
@@ -191,4 +208,3 @@
     }
   }
 }
-
