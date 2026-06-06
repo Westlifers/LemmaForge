@@ -34,15 +34,21 @@
           <SquareTerminal :size="18" aria-hidden="true" />
           Agent
         </RouterLink>
+        <RouterLink to="/settings">
+          <SlidersHorizontal :size="18" aria-hidden="true" />
+          Settings
+        </RouterLink>
       </nav>
     </aside>
     <main class="main-panel">
       <RouterView />
     </main>
+    <AILogDock />
   </div>
 </template>
 
 <script setup lang="ts">
+import AILogDock from "./components/AILogDock.vue";
 import {
   BookOpen,
   FileText,
@@ -50,6 +56,7 @@ import {
   LayoutDashboard,
   Library,
   Network,
+  SlidersHorizontal,
   SquareTerminal,
   Sigma,
 } from "lucide-vue-next";

@@ -75,6 +75,8 @@ def delete_relation(db: Session, relation_id: str) -> bool:
 
 def update_relation(db: Session, relation: Relation, payload: RelationUpdate) -> Relation:
     changes = payload.model_dump(exclude_unset=True)
+    if "source_fragment_id" in changes and db.get(Fragment, changes["source_fragment_id"]) is None:
+        raise ValueError(f"Unknown source fragment: {changes['source_fragment_id']}")
     if "target_fragment_id" in changes and db.get(Fragment, changes["target_fragment_id"]) is None:
         raise ValueError(f"Unknown target fragment: {changes['target_fragment_id']}")
     for key, value in changes.items():
@@ -85,4 +87,3 @@ def update_relation(db: Session, relation: Relation, payload: RelationUpdate) ->
     db.commit()
     db.refresh(relation)
     return relation
-

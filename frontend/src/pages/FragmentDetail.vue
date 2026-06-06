@@ -2,9 +2,9 @@
   <section class="page">
     <header class="page-header">
       <div>
-        <RouterLink class="back-link" to="/fragments">
+        <RouterLink class="back-link" :to="backTarget">
           <ArrowLeft :size="16" aria-hidden="true" />
-          Fragments
+          {{ backLabel }}
         </RouterLink>
         <h1>{{ fragment?.title || "Fragment" }}</h1>
         <p v-if="fragment">{{ fragment.type }} / {{ fragment.status }}</p>
@@ -141,7 +141,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { AlertTriangle, ArchiveX, ArrowLeft, Pencil, Plus, Trash2, X } from "lucide-vue-next";
 import { api } from "../api/client";
 import FragmentEditor from "../components/FragmentEditor.vue";
@@ -151,6 +151,7 @@ import SourcePointerView from "../components/SourcePointerView.vue";
 import type { Fragment, FragmentVersion, Relation, SourcePointer, Topic } from "../types";
 
 const props = defineProps<{ id: string }>();
+const route = useRoute();
 const router = useRouter();
 const fragment = ref<Fragment | null>(null);
 const versions = ref<FragmentVersion[]>([]);
@@ -198,6 +199,8 @@ const newRelation = ref({
 const isAiExtracted = computed(() =>
   fragment.value ? ["assistant_generated", "mixed"].includes(fragment.value.origin_classification) : false
 );
+const backTarget = computed(() => safeBackPath(route.query.from) || "/fragments");
+const backLabel = computed(() => stringQuery(route.query.from_label) || "Fragments");
 
 async function load() {
   error.value = "";
@@ -263,7 +266,7 @@ async function deleteCurrentFragment() {
   deleteLoading.value = true;
   try {
     await api.deleteFragment(fragment.value.id);
-    await router.push("/fragments");
+    await router.push(backTarget.value);
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : String(caught);
   } finally {
@@ -298,6 +301,16 @@ async function save(payload: Partial<Fragment> & { change_note?: string }) {
 
 function topicTitle(topicId: string) {
   return topics.value.find((topic) => topic.id === topicId)?.title || topicId;
+}
+
+function stringQuery(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function safeBackPath(value: unknown) {
+  if (typeof value !== "string") return "";
+  if (!value.startsWith("/") || value.startsWith("//")) return "";
+  return value;
 }
 
 onMounted(load);

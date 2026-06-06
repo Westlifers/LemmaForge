@@ -52,15 +52,6 @@
             Locator
             <input v-model="aiForm.locator" :disabled="isCompletedImport" placeholder="Optional page, theorem, section" />
           </label>
-          <label>
-            Timeout
-            <select v-model.number="aiForm.timeout_seconds" :disabled="isCompletedImport">
-              <option :value="300">5 minutes</option>
-              <option :value="480">8 minutes</option>
-              <option :value="720">12 minutes</option>
-              <option :value="1200">20 minutes</option>
-            </select>
-          </label>
         </div>
         <div class="toolbar">
           <button class="button primary" type="button" :disabled="extracting || isCompletedImport || !aiForm.raw_excerpt.trim()" @click="extract">
@@ -77,16 +68,6 @@
         </div>
         <p v-if="aiMessage" class="success-text">{{ aiMessage }}</p>
         <p v-if="aiError" class="error-text">{{ aiError }}</p>
-        <section class="plain-section codex-log-panel">
-          <header class="section-header">
-            <div>
-              <h2>Codex Feedback</h2>
-              <p>{{ currentJob ? `${currentJob.status} / ${currentJob.job_id}` : "No extraction running" }}</p>
-            </div>
-          </header>
-          <pre v-if="codexLogs.length" class="metadata-json codex-log">{{ codexLogs.join("\n") }}</pre>
-          <p v-else class="muted">Codex stdout/stderr appears here while extraction runs.</p>
-        </section>
       </section>
 
       <section class="plain-section ai-review-panel">
@@ -322,7 +303,9 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
 import { GitBranch, ListChecks, Pencil, Save, Sparkles } from "lucide-vue-next";
 import { api } from "../api/client";
 import FragmentCard from "../components/FragmentCard.vue";
+import { useAILogsStore } from "../stores/aiLogs";
 import { useFragmentsStore } from "../stores/fragments";
+import { useSettingsStore } from "../stores/settings";
 import type {
   AIDraftCreationResult,
   AIRelationProposal,
@@ -337,6 +320,8 @@ import { fragmentTypes } from "../types";
 
 const AI_REVIEW_CACHE_KEY = "lemmaforge.aiImportReview";
 const fragments = useFragmentsStore();
+const aiLogs = useAILogsStore();
+const settings = useSettingsStore();
 const activeTab = ref<"ai" | "manual">("ai");
 const topics = ref<Topic[]>([]);
 const message = ref("");
@@ -359,8 +344,7 @@ const aiForm = reactive({
   topic_hint: "",
   citekey: "",
   locator: "",
-  source_kind: "conversation",
-  timeout_seconds: 480
+  source_kind: "conversation"
 });
 let pollTimer: number | undefined;
 const draft = reactive<Partial<Fragment>>({
@@ -399,9 +383,10 @@ async function extract() {
       citekey: emptyToNull(aiForm.citekey),
       locator: emptyToNull(aiForm.locator),
       source_kind: aiForm.source_kind,
-      timeout_seconds: aiForm.timeout_seconds
+      timeout_seconds: settings.settings.aiTimeoutSeconds
     });
     codexLogs.value = currentJob.value.logs;
+    syncGlobalAiLogs("AI fragment extraction", currentJob.value.job_id, currentJob.value.status, currentJob.value.logs, currentJob.value.error, true);
     aiMessage.value = "Codex extraction started.";
     persistAiReview();
     pollExtractionJob(currentJob.value.job_id);
@@ -417,6 +402,7 @@ async function pollExtractionJob(jobId: string) {
     const job = await api.getAiExtractJob(jobId);
     currentJob.value = job;
     codexLogs.value = job.logs;
+    syncGlobalAiLogs("AI fragment extraction", job.job_id, job.status, job.logs, job.error);
     persistAiReview();
     if (job.status === "queued" || job.status === "running") {
       pollTimer = window.setTimeout(() => pollExtractionJob(jobId), 1000);
@@ -520,7 +506,6 @@ function startNewImport() {
   aiForm.citekey = "";
   aiForm.locator = "";
   aiForm.source_kind = "conversation";
-  aiForm.timeout_seconds = 480;
 }
 
 function isFragmentSaved(localId: string) {
@@ -597,6 +582,7 @@ async function restoreAiReview() {
       const job = await api.getAiExtractJob(cached.job_id);
       currentJob.value = job;
       codexLogs.value = job.logs;
+      syncGlobalAiLogs("AI fragment extraction", job.job_id, job.status, job.logs, job.error);
       if (job.status === "queued" || job.status === "running") {
         extracting.value = true;
         pollExtractionJob(job.job_id);
@@ -606,6 +592,7 @@ async function restoreAiReview() {
         restoreBatchState(job.result.batch, cached.selected_local_ids);
         currentJob.value = job;
         codexLogs.value = job.logs;
+        syncGlobalAiLogs("AI fragment extraction", job.job_id, job.status, job.logs, job.error);
         aiMessage.value = "Restored previous extraction.";
         return;
       }
@@ -688,6 +675,27 @@ function readCachedReview(): {
     sessionStorage.removeItem(AI_REVIEW_CACHE_KEY);
     return null;
   }
+}
+
+function syncGlobalAiLogs(
+  label: string,
+  id: string,
+  status: AIExtractJob["status"],
+  logs: string[],
+  runError: string | null,
+  open = false,
+) {
+  aiLogs.upsertRun({
+    id,
+    kind: "import_extract",
+    label,
+    status,
+    logs,
+    error: runError,
+    result: currentJob.value?.result || null,
+    context: null,
+    open,
+  });
 }
 
 onMounted(load);

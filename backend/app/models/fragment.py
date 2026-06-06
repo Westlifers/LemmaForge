@@ -82,3 +82,18 @@ class FragmentVersion(Base):
 
     fragment: Mapped[Fragment] = relationship(back_populates="versions")
 
+
+class TopicGraphNodePosition(Base):
+    __tablename__ = "topic_graph_node_positions"
+
+    topic_id: Mapped[str] = mapped_column(
+        String(80), ForeignKey("topics.id", ondelete="CASCADE"), primary_key=True
+    )
+    fragment_id: Mapped[str] = mapped_column(
+        String(120), ForeignKey("fragments.id", ondelete="CASCADE"), primary_key=True
+    )
+    x: Mapped[float] = mapped_column(nullable=False)
+    y: Mapped[float] = mapped_column(nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )

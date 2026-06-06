@@ -15,6 +15,7 @@ class RelationCreate(BaseModel):
 
 
 class RelationUpdate(BaseModel):
+    source_fragment_id: str | None = Field(default=None, min_length=1)
     relation_kind: RelationKind | None = None
     target_fragment_id: str | None = Field(default=None, min_length=1)
     confidence: float | None = Field(default=None, ge=0, le=1)

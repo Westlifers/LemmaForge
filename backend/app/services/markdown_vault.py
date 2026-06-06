@@ -66,3 +66,9 @@ def write_context_pack_markdown(context_pack: ContextPack, markdown: str) -> Pat
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(markdown, encoding="utf-8")
     return path
+
+
+def delete_context_pack_markdown(context_pack: ContextPack) -> None:
+    path = context_pack_markdown_path(context_pack)
+    if path.exists():
+        path.unlink()

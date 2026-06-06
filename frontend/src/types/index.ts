@@ -108,6 +108,19 @@ export interface Topic {
   updated_at: string;
 }
 
+export interface TopicGraphNodePosition {
+  fragment_id: string;
+  x: number;
+  y: number;
+}
+
+export interface TopicGraph {
+  topic: Topic;
+  fragments: Fragment[];
+  relations: Relation[];
+  positions: Record<string, TopicGraphNodePosition>;
+}
+
 export interface ResearchPatch {
   patch_type: "ResearchPatch";
   metadata: {
@@ -275,8 +288,10 @@ export interface ContextPackItemInput {
 
 export interface ContextPack {
   id: string;
+  topic_id: string | null;
   title: string;
   objective: string;
+  task_prompt: string | null;
   body: string;
   created_at: string;
   updated_at: string;
@@ -286,6 +301,45 @@ export interface ContextPack {
     order_index: number;
     reason: string | null;
   }>;
+}
+
+export interface ContextPackSuggestionItem {
+  fragment_id: string;
+  order_index: number;
+  reason: string;
+}
+
+export interface ContextPackSuggestion {
+  topic_id: string;
+  objective: string;
+  task_prompt: string;
+  items: ContextPackSuggestionItem[];
+  warnings: string[];
+  missing_context_questions: string[];
+}
+
+export interface ContextPackSuggestRequest {
+  topic_id: string;
+  objective: string;
+  task_prompt: string;
+  timeout_seconds?: number;
+}
+
+export interface ContextPackSuggestResult {
+  available: boolean;
+  suggestion: ContextPackSuggestion | null;
+  error: string | null;
+  logs: string[];
+}
+
+export interface ContextPackSuggestJob {
+  job_id: string;
+  status: "queued" | "running" | "succeeded" | "failed";
+  logs: string[];
+  result: ContextPackSuggestResult | null;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export const fragmentTypes: FragmentType[] = [

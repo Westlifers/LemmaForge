@@ -2,176 +2,216 @@
   <section class="page">
     <header class="page-header">
       <div>
-        <h1>Context Pack Builder</h1>
-        <p>Select, order, annotate, and export Markdown context</p>
+        <h1>Context Packs</h1>
+        <p>Manage saved AI context prompts</p>
       </div>
-      <button class="button primary" type="button" @click="createPack">
-        <PackagePlus :size="16" aria-hidden="true" />
-        Create
-      </button>
+      <RouterLink class="button subtle" to="/topics">
+        <Network :size="16" aria-hidden="true" />
+        Build From Topic
+      </RouterLink>
     </header>
 
-    <div class="split">
-      <section class="plain-section editor">
-        <label>
-          Title
-          <input v-model="title" />
-        </label>
-        <label>
-          Objective
-          <textarea v-model="objective" rows="5" />
-        </label>
-        <label>
-          Search fragments
-          <input v-model="search" @input="loadFragments" />
-        </label>
-        <section class="plain-section">
-          <h2>Available Fragments</h2>
-          <div class="select-list">
-            <label v-for="fragment in availableFragments" :key="fragment.id" class="check-row">
-              <input :checked="isSelected(fragment.id)" type="checkbox" @change="toggle(fragment.id)" />
-              <span>{{ fragment.title }}</span>
-              <small>{{ fragment.type }} / {{ fragment.status }}</small>
-            </label>
-          </div>
-        </section>
-        <section class="plain-section">
-          <h2>Selected Order</h2>
-          <article v-for="(item, index) in selectedItems" :key="item.fragment_id" class="edit-card">
-            <strong>{{ titleFor(item.fragment_id) }}</strong>
-            <label>
-              Reason
-              <input v-model="item.reason" />
-            </label>
-            <footer class="action-row">
-              <button class="button subtle" type="button" @click="move(index, -1)">Up</button>
-              <button class="button subtle" type="button" @click="move(index, 1)">Down</button>
-              <button class="button subtle" type="button" @click="toggle(item.fragment_id)">Remove</button>
-            </footer>
+    <div class="split context-pack-manager">
+      <section class="plain-section">
+        <header class="section-header">
+          <h2>Saved Packs</h2>
+          <button class="button subtle" type="button" @click="load">
+            <RefreshCw :size="16" aria-hidden="true" />
+            Refresh
+          </button>
+        </header>
+        <div class="list-stack">
+          <article
+            v-for="pack in packs"
+            :key="pack.id"
+            class="context-pack-row"
+            :class="{ selected: selectedPackId === pack.id }"
+          >
+            <button class="context-pack-main" type="button" @click="selectPack(pack)">
+              <strong>{{ pack.title }}</strong>
+              <span>{{ pack.items.length }} items</span>
+              <small>{{ pack.topic_id || "No topic" }}</small>
+            </button>
+            <div class="action-row">
+              <button class="button subtle" type="button" @click="exportPack(pack.id)">
+                <Download :size="16" aria-hidden="true" />
+                Export
+              </button>
+              <button class="button danger" type="button" @click="askDelete(pack)">
+                <Trash2 :size="16" aria-hidden="true" />
+                Delete
+              </button>
+            </div>
           </article>
-        </section>
+          <p v-if="!packs.length" class="muted-panel plain-section">
+            Context packs are created from Topic pages.
+          </p>
+        </div>
         <p v-if="message" class="success-text">{{ message }}</p>
         <p v-if="error" class="error-text">{{ error }}</p>
       </section>
 
       <section class="plain-section">
-        <header class="section-header">
-          <h2>Existing Packs</h2>
-          <button v-if="packs.length" class="button subtle" type="button" @click="exportFirst">
-            <Download :size="16" aria-hidden="true" />
-            Export Latest
-          </button>
-        </header>
-        <ul class="compact-list">
-          <li v-for="pack in packs" :key="pack.id">
-            <button class="text-button" type="button" @click="exportPack(pack.id)">
-              {{ pack.title }}
+          <section v-if="selectedPack" class="plain-section context-pack-detail">
+          <header class="section-header">
+            <div>
+              <h2>{{ selectedPack.title }}</h2>
+              <p>{{ selectedPack.items.length }} fragments</p>
+            </div>
+            <button class="button primary" type="button" @click="exportPack(selectedPack.id)">
+              <Download :size="16" aria-hidden="true" />
+              Export
             </button>
-            <span>{{ pack.items.length }} items</span>
-          </li>
-        </ul>
+          </header>
+          <label>
+            Pack name
+            <input v-model="editingTitle" />
+          </label>
+          <div class="action-row">
+            <button class="button primary" type="button" :disabled="!canSaveTitle" @click="saveTitle">
+              <Save :size="16" aria-hidden="true" />
+              Save Name
+            </button>
+          </div>
+          <section>
+            <h3>Objective</h3>
+            <p>{{ selectedPack.objective }}</p>
+          </section>
+          <section>
+            <h3>Task For AI</h3>
+            <p>{{ selectedPack.task_prompt || "No task prompt stored." }}</p>
+          </section>
+          <section>
+            <h3>Items</h3>
+            <ol class="context-pack-item-list">
+              <li v-for="item in orderedItems(selectedPack)" :key="item.fragment_id">
+                <code>{{ item.fragment_id }}</code>
+                <span>{{ item.reason || "No reason stored." }}</span>
+              </li>
+            </ol>
+          </section>
+        </section>
+        <section v-else class="muted-panel plain-section">
+          <p>Select a pack to inspect it.</p>
+        </section>
         <ContextPackPreview :markdown="exportedMarkdown" />
       </section>
     </div>
+
+    <section v-if="packToDelete" class="modal-backdrop" @click.self="packToDelete = null">
+      <div class="modal-panel danger-panel">
+        <header class="section-header">
+          <h2>Delete Context Pack</h2>
+          <button class="icon-button" type="button" aria-label="Close delete confirmation" @click="packToDelete = null">
+            <X :size="16" aria-hidden="true" />
+          </button>
+        </header>
+        <p>
+          Delete {{ packToDelete.title }}? This removes the saved pack and its vault Markdown export.
+        </p>
+        <div class="action-row">
+          <button class="button subtle" type="button" @click="packToDelete = null">Cancel</button>
+          <button class="button danger" type="button" @click="deletePack">
+            <Trash2 :size="16" aria-hidden="true" />
+            Delete
+          </button>
+        </div>
+      </div>
+    </section>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
-import { Download, PackagePlus } from "lucide-vue-next";
+import { computed, onMounted, ref, watch } from "vue";
+import { Download, Network, RefreshCw, Save, Trash2, X } from "lucide-vue-next";
 import ContextPackPreview from "../components/ContextPackPreview.vue";
 import { api } from "../api/client";
-import { useFragmentsStore } from "../stores/fragments";
-import type { ContextPack, ContextPackItemInput } from "../types";
-import { acceptedFragmentStatuses } from "../types";
+import type { ContextPack } from "../types";
 
-const fragments = useFragmentsStore();
 const packs = ref<ContextPack[]>([]);
-const selectedItems = ref<ContextPackItemInput[]>([]);
-const search = ref("");
-const title = ref("Working context pack");
-const objective = ref("State the current mathematical objective here.");
+const selectedPackId = ref("");
 const exportedMarkdown = ref("");
 const message = ref("");
 const error = ref("");
-const availableFragments = computed(() =>
-  fragments.fragments.filter((fragment) => acceptedFragmentStatuses.includes(fragment.status))
-);
+const packToDelete = ref<ContextPack | null>(null);
+const editingTitle = ref("");
+const selectedPack = computed(() => packs.value.find((pack) => pack.id === selectedPackId.value) || null);
+const canSaveTitle = computed(() => {
+  const title = editingTitle.value.trim();
+  return !!selectedPack.value && !!title && title !== selectedPack.value.title;
+});
 
 async function load() {
-  await loadFragments();
-  packs.value = await api.listContextPacks();
-}
-
-async function loadFragments() {
-  await fragments.load({ search: search.value });
-}
-
-function isSelected(fragmentId: string) {
-  return selectedItems.value.some((item) => item.fragment_id === fragmentId);
-}
-
-function toggle(fragmentId: string) {
-  const index = selectedItems.value.findIndex((item) => item.fragment_id === fragmentId);
-  if (index >= 0) {
-    selectedItems.value.splice(index, 1);
-  } else {
-    selectedItems.value.push({
-      fragment_id: fragmentId,
-      order_index: selectedItems.value.length,
-      reason: "Selected for current objective."
-    });
-  }
-  normalizeOrder();
-}
-
-function move(index: number, delta: number) {
-  const target = index + delta;
-  if (target < 0 || target >= selectedItems.value.length) return;
-  const [item] = selectedItems.value.splice(index, 1);
-  selectedItems.value.splice(target, 0, item);
-  normalizeOrder();
-}
-
-function normalizeOrder() {
-  selectedItems.value.forEach((item, index) => {
-    item.order_index = index;
-  });
-}
-
-function titleFor(fragmentId: string) {
-  return fragments.fragments.find((fragment) => fragment.id === fragmentId)?.title || fragmentId;
-}
-
-async function createPack() {
   error.value = "";
-  message.value = "";
-  try {
-    const pack = await api.createContextPack({
-      title: title.value,
-      objective: objective.value,
-      items: selectedItems.value
-    });
-    packs.value = [pack, ...packs.value];
-    message.value = `Created ${pack.title}.`;
-  } catch (caught) {
-    error.value = caught instanceof Error ? caught.message : String(caught);
+  packs.value = await api.listContextPacks();
+  if (!selectedPackId.value && packs.value[0]) {
+    selectedPackId.value = packs.value[0].id;
   }
+}
+
+function selectPack(pack: ContextPack) {
+  selectedPackId.value = pack.id;
+  editingTitle.value = pack.title;
+}
+
+function orderedItems(pack: ContextPack) {
+  return [...pack.items].sort((left, right) => left.order_index - right.order_index);
 }
 
 async function exportPack(id: string) {
   error.value = "";
+  message.value = "";
+  selectedPackId.value = id;
   try {
     const result = await api.exportContextPack(id);
     exportedMarkdown.value = result.markdown;
+    message.value = "Exported context pack.";
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : String(caught);
   }
 }
 
-function exportFirst() {
-  if (packs.value[0]) void exportPack(packs.value[0].id);
+async function saveTitle() {
+  if (!selectedPack.value || !editingTitle.value.trim()) return;
+  error.value = "";
+  message.value = "";
+  try {
+    const updated = await api.updateContextPack(selectedPack.value.id, {
+      title: editingTitle.value.trim(),
+    });
+    packs.value = packs.value.map((pack) => (pack.id === updated.id ? updated : pack));
+    editingTitle.value = updated.title;
+    message.value = "Context pack renamed.";
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : String(caught);
+  }
+}
+
+function askDelete(pack: ContextPack) {
+  packToDelete.value = pack;
+}
+
+async function deletePack() {
+  if (!packToDelete.value) return;
+  error.value = "";
+  message.value = "";
+  try {
+    const deletedId = packToDelete.value.id;
+    await api.deleteContextPack(deletedId);
+    packs.value = packs.value.filter((pack) => pack.id !== deletedId);
+    if (selectedPackId.value === deletedId) {
+      selectedPackId.value = packs.value[0]?.id || "";
+      exportedMarkdown.value = "";
+    }
+    packToDelete.value = null;
+    message.value = "Deleted context pack.";
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : String(caught);
+  }
 }
 
 onMounted(load);
+watch(selectedPack, (pack) => {
+  editingTitle.value = pack?.title || "";
+});
 </script>

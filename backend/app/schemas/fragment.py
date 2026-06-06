@@ -89,3 +89,25 @@ class TopicRead(BaseModel):
     description: str | None
     created_at: datetime
     updated_at: datetime
+
+
+class TopicGraphNodePositionRead(BaseModel):
+    fragment_id: str
+    x: float
+    y: float
+
+
+class TopicGraphLayoutUpdate(BaseModel):
+    positions: dict[str, TopicGraphNodePositionRead]
+
+
+class TopicGraphRead(BaseModel):
+    topic: TopicRead
+    fragments: list[FragmentRead]
+    relations: list["RelationRead"]
+    positions: dict[str, TopicGraphNodePositionRead]
+
+
+from .relation import RelationRead  # noqa: E402
+
+TopicGraphRead.model_rebuild()

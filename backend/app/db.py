@@ -74,16 +74,42 @@ def _ensure_lightweight_sqlite_migrations() -> None:
     if engine.dialect.name != "sqlite":
         return
     inspector = inspect(engine)
-    if "import_batches" not in inspector.get_table_names():
-        return
-    existing_columns = {column["name"] for column in inspector.get_columns("import_batches")}
-    pending_columns = {
-        "ai_draft_result_json": "TEXT",
-        "relation_proposals_json": "TEXT",
-    }
+    table_names = inspector.get_table_names()
     with engine.begin() as connection:
-        for column_name, column_type in pending_columns.items():
-            if column_name not in existing_columns:
-                connection.execute(
-                    text(f"ALTER TABLE import_batches ADD COLUMN {column_name} {column_type}")
+        if "import_batches" in table_names:
+            existing_columns = {column["name"] for column in inspector.get_columns("import_batches")}
+            pending_columns = {
+                "ai_draft_result_json": "TEXT",
+                "relation_proposals_json": "TEXT",
+            }
+            for column_name, column_type in pending_columns.items():
+                if column_name not in existing_columns:
+                    connection.execute(
+                        text(f"ALTER TABLE import_batches ADD COLUMN {column_name} {column_type}")
+                    )
+        if "topic_graph_node_positions" not in table_names:
+            connection.execute(
+                text(
+                    "CREATE TABLE topic_graph_node_positions ("
+                    "topic_id VARCHAR(80) NOT NULL, "
+                    "fragment_id VARCHAR(120) NOT NULL, "
+                    "x FLOAT NOT NULL, "
+                    "y FLOAT NOT NULL, "
+                    "updated_at DATETIME NOT NULL, "
+                    "PRIMARY KEY (topic_id, fragment_id), "
+                    "FOREIGN KEY(topic_id) REFERENCES topics (id) ON DELETE CASCADE, "
+                    "FOREIGN KEY(fragment_id) REFERENCES fragments (id) ON DELETE CASCADE"
+                    ")"
                 )
+            )
+        if "context_packs" in table_names:
+            existing_columns = {column["name"] for column in inspector.get_columns("context_packs")}
+            pending_columns = {
+                "topic_id": "VARCHAR(80)",
+                "task_prompt": "TEXT",
+            }
+            for column_name, column_type in pending_columns.items():
+                if column_name not in existing_columns:
+                    connection.execute(
+                        text(f"ALTER TABLE context_packs ADD COLUMN {column_name} {column_type}")
+                    )

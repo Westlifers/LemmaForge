@@ -78,7 +78,7 @@ class AIExtractRequest(BaseModel):
     citekey: str | None = None
     locator: str | None = None
     source_kind: str = "conversation"
-    timeout_seconds: int = Field(default=480, ge=30, le=1200)
+    timeout_seconds: int = Field(default=900, ge=30, le=1800)
 
 
 class AIExtractResult(BaseModel):

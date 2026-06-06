@@ -4,7 +4,7 @@ from sqlalchemy import Select, delete, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.context_pack import ContextPackItem
-from app.models.fragment import Fragment, FragmentVersion
+from app.models.fragment import Fragment, FragmentVersion, TopicGraphNodePosition
 from app.models.relation import Relation
 from app.models.source import Source, SourcePointer
 from app.schemas.fragment import FragmentCreate, FragmentUpdate, FragmentVersionCreate
@@ -169,6 +169,7 @@ def _delete_fragment_records(db: Session, fragment: Fragment) -> None:
         )
     )
     db.execute(delete(SourcePointer).where(SourcePointer.fragment_id == fragment_id))
+    db.execute(delete(TopicGraphNodePosition).where(TopicGraphNodePosition.fragment_id == fragment_id))
     db.execute(delete(FragmentVersion).where(FragmentVersion.fragment_id == fragment_id))
     db.delete(fragment)
 

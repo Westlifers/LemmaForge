@@ -67,6 +67,10 @@
             </section>
           </Transition>
           <footer class="action-row">
+            <RouterLink class="button primary" :to="`/topics/${topic.id}`">
+              <Network :size="16" aria-hidden="true" />
+              Map
+            </RouterLink>
             <button class="button subtle" type="button" @click="edit(topic)">
               <Pencil :size="16" aria-hidden="true" />
               Edit
@@ -84,7 +88,7 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
-import { ChevronRight, Pencil, Trash2 } from "lucide-vue-next";
+import { ChevronRight, Network, Pencil, Trash2 } from "lucide-vue-next";
 import { api } from "../api/client";
 import type { Topic } from "../types";
 import { useFragmentsStore } from "../stores/fragments";

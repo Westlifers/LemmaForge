@@ -13,8 +13,12 @@ class ContextPack(Base):
     __tablename__ = "context_packs"
 
     id: Mapped[str] = mapped_column(String(120), primary_key=True)
+    topic_id: Mapped[str | None] = mapped_column(
+        String(80), ForeignKey("topics.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     title: Mapped[str] = mapped_column(String(300), nullable=False)
     objective: Mapped[str] = mapped_column(Text, nullable=False)
+    task_prompt: Mapped[str | None] = mapped_column(Text)
     body: Mapped[str] = mapped_column(Text, nullable=False, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
@@ -42,4 +46,3 @@ class ContextPackItem(Base):
 
     context_pack: Mapped[ContextPack] = relationship(back_populates="items")
     fragment = relationship("Fragment")
-

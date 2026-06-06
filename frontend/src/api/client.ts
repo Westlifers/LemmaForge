@@ -7,6 +7,9 @@ import type {
   AIExtractJob,
   ContextPack,
   ContextPackItemInput,
+  ContextPackSuggestJob,
+  ContextPackSuggestRequest,
+  ContextPackSuggestResult,
   DuplicateSuggestion,
   Fragment,
   FragmentVersion,
@@ -16,7 +19,8 @@ import type {
   Relation,
   ResearchPatch,
   Source,
-  SourcePointer
+  SourcePointer,
+  TopicGraph
 } from "../types";
 
 const jsonHeaders = { "Content-Type": "application/json" };
@@ -231,7 +235,9 @@ export const api = {
   },
   createContextPack(payload: {
     title: string;
+    topic_id?: string | null;
     objective: string;
+    task_prompt?: string | null;
     body?: string;
     items: ContextPackItemInput[];
   }) {
@@ -246,6 +252,36 @@ export const api = {
       `/api/context-packs/${id}/export`,
       { method: "POST" }
     );
+  },
+  deleteContextPack(id: string) {
+    return request<void>(`/api/context-packs/${id}`, { method: "DELETE" });
+  },
+  updateContextPack(id: string, payload: { title?: string; objective?: string; task_prompt?: string | null; body?: string }) {
+    return request<ContextPack>(`/api/context-packs/${id}`, {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload)
+    });
+  },
+  suggestContextPack(payload: ContextPackSuggestRequest) {
+    return request<ContextPackSuggestResult>("/api/context-packs/ai/suggest", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload)
+    });
+  },
+  startContextPackSuggestJob(payload: ContextPackSuggestRequest) {
+    return request<ContextPackSuggestJob>("/api/context-packs/ai/suggestion-jobs", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload)
+    });
+  },
+  getContextPackSuggestJob(jobId: string) {
+    return request<ContextPackSuggestJob>(`/api/context-packs/ai/suggestion-jobs/${jobId}`);
+  },
+  listTopicContextPacks(topicId: string) {
+    return request<ContextPack[]>(`/api/topics/${topicId}/context-packs`);
   },
   zoteroStatus() {
     return request<Record<string, unknown>>("/api/zotero/status");
@@ -286,6 +322,16 @@ export const api = {
   },
   deleteTopic(id: string) {
     return request<void>(`/api/topics/${id}`, { method: "DELETE" });
+  },
+  getTopicGraph(id: string) {
+    return request<TopicGraph>(`/api/topics/${id}/graph`);
+  },
+  updateTopicGraphLayout(id: string, positions: Record<string, { fragment_id: string; x: number; y: number }>) {
+    return request<TopicGraph>(`/api/topics/${id}/graph-layout`, {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify({ positions })
+    });
   },
   agentStatus() {
     return request<Record<string, unknown>>("/api/agent/status");

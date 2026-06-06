@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ContextPackSuggestion",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "topic_id",
+    "objective",
+    "task_prompt",
+    "items",
+    "warnings",
+    "missing_context_questions"
+  ],
+  "properties": {
+    "topic_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "objective": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_prompt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["fragment_id", "order_index", "reason"],
+        "properties": {
+          "fragment_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "order_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "missing_context_questions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
