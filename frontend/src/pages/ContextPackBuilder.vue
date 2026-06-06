@@ -98,26 +98,28 @@
       </section>
     </div>
 
-    <section v-if="packToDelete" class="modal-backdrop" @click.self="packToDelete = null">
-      <div class="modal-panel danger-panel">
-        <header class="section-header">
-          <h2>Delete Context Pack</h2>
-          <button class="icon-button" type="button" aria-label="Close delete confirmation" @click="packToDelete = null">
-            <X :size="16" aria-hidden="true" />
-          </button>
-        </header>
-        <p>
-          Delete {{ packToDelete.title }}? This removes the saved pack and its vault Markdown export.
-        </p>
-        <div class="action-row">
-          <button class="button subtle" type="button" @click="packToDelete = null">Cancel</button>
-          <button class="button danger" type="button" @click="deletePack">
-            <Trash2 :size="16" aria-hidden="true" />
-            Delete
-          </button>
+    <Transition name="modal-fade">
+      <section v-if="packToDelete" class="modal-backdrop" @click.self="packToDelete = null">
+        <div class="modal-panel danger-panel">
+          <header class="section-header">
+            <h2>Delete Context Pack</h2>
+            <button class="icon-button" type="button" aria-label="Close delete confirmation" @click="packToDelete = null">
+              <X :size="16" aria-hidden="true" />
+            </button>
+          </header>
+          <p>
+            Delete {{ packToDelete.title }}? This removes the saved pack and its vault Markdown export.
+          </p>
+          <div class="action-row">
+            <button class="button subtle" type="button" @click="packToDelete = null">Cancel</button>
+            <button class="button danger" type="button" @click="deletePack">
+              <Trash2 :size="16" aria-hidden="true" />
+              Delete
+            </button>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </Transition>
   </section>
 </template>
 

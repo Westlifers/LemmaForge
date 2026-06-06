@@ -9,48 +9,50 @@
       <Bot :size="18" aria-hidden="true" />
       <span v-if="logs.runningCount">{{ logs.runningCount }}</span>
     </button>
-    <section v-if="logs.panelOpen" class="ai-log-popover">
-      <header class="section-header">
-        <div>
-          <h3>AI Logs</h3>
-          <p>{{ logs.runs.length ? `${logs.runs.length} recent runs` : "No AI runs yet" }}</p>
+    <Transition name="popover">
+      <section v-if="logs.panelOpen" class="ai-log-popover">
+        <header class="section-header">
+          <div>
+            <h3>AI Logs</h3>
+            <p>{{ logs.runs.length ? `${logs.runs.length} recent runs` : "No AI runs yet" }}</p>
+          </div>
+          <button class="icon-button" type="button" aria-label="Close AI logs" @click="logs.setPanelOpen(false)">
+            <X :size="16" aria-hidden="true" />
+          </button>
+        </header>
+        <div class="ai-log-layout">
+          <ul class="ai-log-run-list">
+            <li v-for="run in logs.runs" :key="run.id">
+              <button
+                type="button"
+                :class="{ active: run.id === logs.activeRun?.id }"
+                @click="logs.activeRunId = run.id"
+              >
+                <strong>{{ run.label }}</strong>
+                <span :data-status="run.status">{{ run.status }}</span>
+              </button>
+            </li>
+          </ul>
+          <div class="ai-log-detail">
+            <template v-if="logs.activeRun">
+              <header>
+                <strong>{{ logs.activeRun.label }}</strong>
+                <span :data-status="logs.activeRun.status">{{ logs.activeRun.status }}</span>
+              </header>
+              <p v-if="logs.activeRun.error" class="error-text">{{ logs.activeRun.error }}</p>
+              <pre v-if="logs.activeRun.logs.length" class="metadata-json codex-log">{{ logs.activeRun.logs.join("\n") }}</pre>
+              <p v-else class="muted">No log lines yet.</p>
+            </template>
+            <p v-else class="muted">AI operation logs will appear here.</p>
+          </div>
         </div>
-        <button class="icon-button" type="button" aria-label="Close AI logs" @click="logs.setPanelOpen(false)">
-          <X :size="16" aria-hidden="true" />
-        </button>
-      </header>
-      <div class="ai-log-layout">
-        <ul class="ai-log-run-list">
-          <li v-for="run in logs.runs" :key="run.id">
-            <button
-              type="button"
-              :class="{ active: run.id === logs.activeRun?.id }"
-              @click="logs.activeRunId = run.id"
-            >
-              <strong>{{ run.label }}</strong>
-              <span :data-status="run.status">{{ run.status }}</span>
-            </button>
-          </li>
-        </ul>
-        <div class="ai-log-detail">
-          <template v-if="logs.activeRun">
-            <header>
-              <strong>{{ logs.activeRun.label }}</strong>
-              <span :data-status="logs.activeRun.status">{{ logs.activeRun.status }}</span>
-            </header>
-            <p v-if="logs.activeRun.error" class="error-text">{{ logs.activeRun.error }}</p>
-            <pre v-if="logs.activeRun.logs.length" class="metadata-json codex-log">{{ logs.activeRun.logs.join("\n") }}</pre>
-            <p v-else class="muted">No log lines yet.</p>
-          </template>
-          <p v-else class="muted">AI operation logs will appear here.</p>
-        </div>
-      </div>
-      <footer class="action-row">
-        <button class="button subtle" type="button" :disabled="!logs.runs.length" @click="logs.clearRuns">
-          Clear
-        </button>
-      </footer>
-    </section>
+        <footer class="action-row">
+          <button class="button subtle" type="button" :disabled="!logs.runs.length" @click="logs.clearRuns">
+            Clear
+          </button>
+        </footer>
+      </section>
+    </Transition>
   </div>
 </template>
 

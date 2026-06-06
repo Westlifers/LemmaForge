@@ -20,7 +20,7 @@
           <span v-if="fragment.topic_id">Topic: {{ topicTitle(fragment.topic_id) }}</span>
         </div>
         <h3>{{ fragment.title }}</h3>
-        <p>{{ fragment.body }}</p>
+        <MarkdownLatexRenderer class="card-tex-preview" :body="fragment.body" />
         <footer class="action-row">
           <RouterLink class="button subtle" :to="`/fragments/${fragment.id}`">Edit</RouterLink>
           <button class="button primary" type="button" @click="setStatus(fragment, 'working')">
@@ -42,6 +42,7 @@
 import { computed, onMounted, ref } from "vue";
 import { Check, Plus, X } from "lucide-vue-next";
 import { api } from "../api/client";
+import MarkdownLatexRenderer from "../components/MarkdownLatexRenderer.vue";
 import { useFragmentsStore } from "../stores/fragments";
 import type { Fragment, FragmentStatus, Topic } from "../types";
 import { unacceptedFragmentStatuses } from "../types";

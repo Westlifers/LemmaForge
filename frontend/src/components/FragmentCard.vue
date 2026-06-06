@@ -10,19 +10,35 @@
         <span class="sr-only">Select {{ fragment.title }}</span>
       </label>
       <div class="fragment-card__header">
-        <span class="badge">{{ fragment.type }}</span>
-        <span class="status" :data-status="fragment.status">{{ fragment.status }}</span>
+        <span class="badge">
+          <FileText :size="13" aria-hidden="true" />
+          {{ fragment.type }}
+        </span>
+        <span class="status" :data-status="fragment.status">
+          <CircleDot :size="13" aria-hidden="true" />
+          {{ fragment.status }}
+        </span>
       </div>
     </div>
     <RouterLink class="fragment-card__link" :to="`/fragments/${fragment.id}`">
       <h3>{{ fragment.title }}</h3>
-      <p>{{ fragment.body }}</p>
+      <MarkdownLatexRenderer class="card-tex-preview" :body="fragment.body" />
       <footer>
-        <span class="chip" data-chip="origin">Origin: {{ fragment.origin_classification }}</span>
-        <span v-if="isAiExtracted" class="chip" data-chip="ai">AI extracted</span>
-        <span class="chip" data-chip="exactness">Exactness: {{ fragment.exactness }}</span>
+        <span class="chip" data-chip="origin">
+          <Fingerprint :size="13" aria-hidden="true" />
+          {{ fragment.origin_classification }}
+        </span>
+        <span v-if="isAiExtracted" class="chip" data-chip="ai">
+          <Sparkles :size="13" aria-hidden="true" />
+          AI extracted
+        </span>
+        <span class="chip" data-chip="exactness">
+          <Quote :size="13" aria-hidden="true" />
+          {{ fragment.exactness }}
+        </span>
         <span v-if="fragment.topic_id" class="chip" data-chip="topic">
-          Topic: {{ topicTitle || fragment.topic_id }}
+          <Network :size="13" aria-hidden="true" />
+          {{ topicTitle || fragment.topic_id }}
         </span>
       </footer>
     </RouterLink>
@@ -32,6 +48,8 @@
 <script setup lang="ts">
 import type { Fragment } from "../types";
 import { computed } from "vue";
+import { CircleDot, FileText, Fingerprint, Network, Quote, Sparkles } from "lucide-vue-next";
+import MarkdownLatexRenderer from "./MarkdownLatexRenderer.vue";
 
 const props = withDefaults(
   defineProps<{ fragment: Fragment; topicTitle?: string; selectable?: boolean; selected?: boolean }>(),

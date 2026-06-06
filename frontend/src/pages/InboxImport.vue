@@ -22,13 +22,27 @@
       </button>
     </div>
 
-    <div v-if="activeTab === 'ai'" class="ai-import-grid">
-      <section class="plain-section editor">
-        <h2>Source Text</h2>
+    <Transition name="tab-fade" mode="out-in">
+      <div v-if="activeTab === 'ai'" class="ai-import-grid" key="ai-import">
+      <section class="plain-section editor import-source-panel">
+        <header class="section-header">
+          <div>
+            <h2>Source Text</h2>
+            <p>Paste a conversation, excerpt, or paper note for Codex extraction.</p>
+          </div>
+          <span class="panel-icon">
+            <FileText :size="17" aria-hidden="true" />
+          </span>
+        </header>
         <label>
           Excerpt or conversation
           <textarea v-model="aiForm.raw_excerpt" :disabled="isCompletedImport" required rows="18" />
         </label>
+        <div class="source-stats">
+          <span>{{ sourceCharacterCount }} chars</span>
+          <span>{{ sourceLineCount }} lines</span>
+          <span>{{ aiForm.source_kind }}</span>
+        </div>
         <div class="form-grid two">
           <label>
             Topic hint
@@ -58,11 +72,12 @@
             <Sparkles :size="16" aria-hidden="true" />
             {{ extracting ? "Extracting..." : "Extract With Codex" }}
           </button>
-          <button class="button primary" type="button" :disabled="extracting && !isCompletedImport" @click="startNewImport">
-            <Sparkles :size="16" aria-hidden="true" />
+          <button class="button subtle" type="button" :disabled="extracting && !isCompletedImport" @click="startNewImport">
+            <RefreshCw :size="16" aria-hidden="true" />
             Start New Import
           </button>
           <button class="button subtle" type="button" :disabled="!aiPreview" @click="resetAiReview">
+            <XCircle :size="16" aria-hidden="true" />
             Clear Preview
           </button>
         </div>
@@ -79,6 +94,10 @@
               <span v-if="isCompletedImport"> / completed</span>
             </p>
           </div>
+          <div class="toolbar">
+            <span v-if="aiPreview" class="chip" data-chip="ai">
+              {{ aiPreview.fragment_count }} fragments
+            </span>
           <button
             class="button primary"
             type="button"
@@ -88,14 +107,17 @@
             <Save :size="16" aria-hidden="true" />
             {{ creatingDrafts ? "Creating..." : "Create Drafts" }}
           </button>
+          </div>
         </header>
 
         <div v-if="aiPreview" class="patch-preview compact-preview">
           <div class="toolbar">
             <button class="button subtle" type="button" :disabled="isCompletedImport" @click="selectAllFragments">
+              <CheckSquare :size="16" aria-hidden="true" />
               Select All
             </button>
             <button class="button subtle" type="button" :disabled="isCompletedImport" @click="clearFragmentSelection">
+              <XCircle :size="16" aria-hidden="true" />
               Clear
             </button>
           </div>
@@ -131,7 +153,7 @@
               <span class="chip" data-chip="ai">AI extracted</span>
             </div>
             <h3>{{ fragment.title }}</h3>
-            <p>{{ fragment.body }}</p>
+            <MarkdownLatexRenderer class="card-tex-preview" :body="fragment.body" />
             <footer>
               <span class="chip" data-chip="origin">Origin: {{ fragment.origin_classification }}</span>
               <span class="chip" data-chip="exactness">Exactness: {{ fragment.exactness }}</span>
@@ -165,7 +187,15 @@
 
       <aside class="plain-section ai-side-panel">
         <section class="plain-section">
-          <h2>Duplicate Suggestions</h2>
+          <header class="section-header">
+            <div>
+              <h2>Duplicate Suggestions</h2>
+              <p>Likely existing matches only, no automatic merge.</p>
+            </div>
+            <span class="panel-icon">
+              <Search :size="16" aria-hidden="true" />
+            </span>
+          </header>
           <ul v-if="suggestions.length" class="compact-list">
             <li v-for="suggestion in suggestions" :key="`${suggestion.local_id}-${suggestion.fragment_id}`">
               <code>{{ suggestion.local_id }}</code>
@@ -177,7 +207,15 @@
         </section>
 
         <section class="plain-section">
-          <h2>Created Drafts</h2>
+          <header class="section-header">
+            <div>
+              <h2>Created Drafts</h2>
+              <p>Saved fragments from this extraction.</p>
+            </div>
+            <span class="panel-icon">
+              <ListChecks :size="16" aria-hidden="true" />
+            </span>
+          </header>
           <ul v-if="draftResult?.fragment_ids.length" class="compact-list">
             <li v-for="fragmentId in draftResult.fragment_ids" :key="fragmentId">
               <RouterLink :to="`/fragments/${fragmentId}`">{{ fragmentId }}</RouterLink>
@@ -226,10 +264,19 @@
           <p v-else class="muted">Codex relation proposals stay here until you apply them.</p>
         </section>
       </aside>
-    </div>
+      </div>
 
-    <div v-else class="split">
+      <div v-else class="split import-manual-grid" key="manual-import">
       <form class="plain-section editor" @submit.prevent="storeDraft">
+        <header class="section-header">
+          <div>
+            <h2>Manual Draft</h2>
+            <p>Create one reviewed draft directly.</p>
+          </div>
+          <span class="panel-icon">
+            <Pencil :size="17" aria-hidden="true" />
+          </span>
+        </header>
         <label>
           Title
           <input v-model="draft.title" />
@@ -294,15 +341,28 @@
           <p v-if="!recentDrafts.length" class="muted">No draft fragments yet.</p>
         </div>
       </section>
-    </div>
+      </div>
+    </Transition>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
-import { GitBranch, ListChecks, Pencil, Save, Sparkles } from "lucide-vue-next";
+import {
+  CheckSquare,
+  FileText,
+  GitBranch,
+  ListChecks,
+  Pencil,
+  RefreshCw,
+  Save,
+  Search,
+  Sparkles,
+  XCircle,
+} from "lucide-vue-next";
 import { api } from "../api/client";
 import FragmentCard from "../components/FragmentCard.vue";
+import MarkdownLatexRenderer from "../components/MarkdownLatexRenderer.vue";
 import { useAILogsStore } from "../stores/aiLogs";
 import { useFragmentsStore } from "../stores/fragments";
 import { useSettingsStore } from "../stores/settings";
@@ -360,6 +420,8 @@ const draft = reactive<Partial<Fragment>>({
 const recentDrafts = computed(() =>
   fragments.fragments.filter((fragment) => fragment.status === "draft").slice(0, 8)
 );
+const sourceCharacterCount = computed(() => aiForm.raw_excerpt.length);
+const sourceLineCount = computed(() => (aiForm.raw_excerpt ? aiForm.raw_excerpt.split(/\r?\n/).length : 0));
 const relationProposals = computed<AIRelationProposal[]>(() =>
   draftResult.value?.relation_proposals || currentBatch.value?.relation_proposals || []
 );
