@@ -59,6 +59,17 @@ export interface Fragment {
   updated_at: string;
 }
 
+export interface AppHealth {
+  ok: boolean;
+  storage?: {
+    database_bytes: number;
+    vault_bytes: number;
+    app_bytes: number;
+    disk_total_bytes: number;
+    disk_free_bytes: number;
+  };
+}
+
 export interface FragmentVersion {
   id: string;
   fragment_id: string;
