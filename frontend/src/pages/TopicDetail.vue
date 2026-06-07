@@ -1,13 +1,16 @@
 <template>
   <section class="page topic-map-page">
-    <header class="page-header">
+    <header class="page-header topic-workspace-header">
       <div>
         <RouterLink class="back-link" to="/topics">
           <ArrowLeft :size="16" aria-hidden="true" />
           Topics
         </RouterLink>
         <h1>{{ graph?.topic.title || "Topic" }}</h1>
-        <p v-if="graph">{{ graph.fragments.length }} fragments / {{ graph.relations.length }} relations</p>
+        <p v-if="graph">
+          {{ graph.fragments.length }} fragments / {{ graph.relations.length }} relations /
+          {{ topicContextPacks.length }} packs
+        </p>
       </div>
       <div class="toolbar">
         <button class="button subtle" type="button" @click="load">
@@ -18,12 +21,13 @@
           <Network :size="16" aria-hidden="true" />
           Auto Arrange
         </button>
-        <button class="button subtle" type="button" :class="{ active: contextMode }" @click="toggleContextMode">
-          <Brain :size="16" aria-hidden="true" />
-          AI Context
+        <button class="button subtle" type="button" @click="addDrawerOpen = true">
+          <FolderPlus :size="16" aria-hidden="true" />
+          Add Fragments
         </button>
         <RouterLink class="button subtle" to="/fragments">
-          Fragments
+          <List :size="16" aria-hidden="true" />
+          All Fragments
         </RouterLink>
       </div>
     </header>
@@ -31,200 +35,177 @@
     <p v-if="error" class="error-text">{{ error }}</p>
     <p v-if="message" class="success-text">{{ message }}</p>
 
-    <div class="topic-map-grid">
-      <section class="topic-graph-panel">
-        <div class="topic-graph-toolbar">
-          <div>
-            <span class="panel-icon">
-              <Network :size="16" aria-hidden="true" />
-            </span>
+    <nav class="tabs topic-workspace-tabs" aria-label="Topic workspace tabs">
+      <button
+        v-for="tab in workspaceTabs"
+        :key="tab.id"
+        type="button"
+        :class="{ active: activeTab === tab.id }"
+        @click="changeTab(tab.id)"
+      >
+        <component :is="tab.icon" :size="16" aria-hidden="true" />
+        {{ tab.label }}
+      </button>
+    </nav>
+
+    <Transition name="tab-fade" mode="out-in">
+      <section v-if="activeTab === 'graph'" key="graph" class="topic-workspace-panel">
+        <section class="topic-graph-panel topic-graph-panel--workspace">
+          <div class="topic-graph-toolbar">
             <div>
-              <strong>Topic Graph</strong>
-              <small>Drag nodes, connect handles, double-click to open detail.</small>
+              <span class="panel-icon">
+                <Network :size="16" aria-hidden="true" />
+              </span>
+              <div>
+                <strong>Topic Graph</strong>
+                <small>Drag nodes, connect handles, click to inspect, double-click to open detail.</small>
+              </div>
+            </div>
+            <div class="topic-graph-legend">
+              <span class="chip" data-chip="topic">{{ graph?.fragments.length || 0 }} nodes</span>
+              <span class="chip" data-chip="exactness">{{ graph?.relations.length || 0 }} relations</span>
+              <span v-if="selectedContextItems.length" class="chip" data-chip="ai">
+                {{ selectedContextItems.length }} in context
+              </span>
             </div>
           </div>
-          <div class="topic-graph-legend">
-            <span class="chip" data-chip="topic">{{ graph?.fragments.length || 0 }} nodes</span>
-            <span class="chip" data-chip="exactness">{{ graph?.relations.length || 0 }} relations</span>
-            <span v-if="contextMode" class="chip" data-chip="ai">AI context mode</span>
-          </div>
-        </div>
-        <VueFlow
-          v-model:nodes="nodes"
-          v-model:edges="edges"
-          class="topic-flow"
-          :fit-view-on-init="true"
-          :default-edge-options="{ updatable: true, type: 'smoothstep' }"
-          @connect="createGraphRelation"
-          @edge-click="selectEdge"
-          @edge-update="reconnectEdge"
-          @node-click="selectNode"
-          @node-double-click="openFragment"
-          @node-drag-stop="saveLayout"
-        />
+          <VueFlow
+            v-model:nodes="nodes"
+            v-model:edges="edges"
+            class="topic-flow topic-flow--workspace"
+            :fit-view-on-init="true"
+            :default-edge-options="{ updatable: true, type: 'smoothstep' }"
+            @connect="createGraphRelation"
+            @edge-click="selectEdge"
+            @edge-update="reconnectEdge"
+            @node-click="selectNode"
+            @node-double-click="openFragment"
+            @node-drag-stop="saveLayout"
+          />
+        </section>
       </section>
 
-      <aside class="topic-map-side">
-        <section v-if="contextMode" class="plain-section muted-panel">
-          <div class="inspector-empty">
-            <span class="panel-icon">
-              <Brain :size="16" aria-hidden="true" />
-            </span>
-            <p>AI context selection is active. Click graph nodes to add or remove them from the prompt order.</p>
-          </div>
-        </section>
-
-        <section v-else class="plain-section topic-panel">
+      <section v-else-if="activeTab === 'fragments'" key="fragments" class="topic-workspace-panel">
+        <section class="plain-section topic-fragments-workspace">
           <header class="section-header">
-            <div class="inspector-title">
-              <span class="panel-icon">
-                <Plus :size="16" aria-hidden="true" />
-              </span>
-              <div>
-                <h3>Add Fragment</h3>
-                <p>Attach an existing fragment to this topic.</p>
-              </div>
+            <div>
+              <span class="eyebrow">Topic fragments</span>
+              <h2>Manage This Topic</h2>
+              <p>{{ filteredTopicFragments.length }} shown / {{ topicFragments.length }} attached</p>
             </div>
+            <button class="button primary" type="button" @click="addDrawerOpen = true">
+              <FolderPlus :size="16" aria-hidden="true" />
+              Add Fragments
+            </button>
           </header>
-          <label>
-            Existing fragment
-            <select v-model="fragmentToAdd">
-              <option value="">Choose fragment...</option>
-              <option v-for="fragment in addableFragments" :key="fragment.id" :value="fragment.id">
-                {{ fragment.title }}
-              </option>
-            </select>
-          </label>
-          <button class="button subtle" type="button" :disabled="!fragmentToAdd" @click="addFragmentToTopic">
-            <Plus :size="16" aria-hidden="true" />
-            Add To Topic
-          </button>
-        </section>
 
-        <section v-if="!contextMode && selectedFragment" class="plain-section topic-panel">
-          <header class="section-header">
-            <div class="inspector-title">
-              <span class="panel-icon">
-                <FileText :size="16" aria-hidden="true" />
+          <section class="topic-fragment-filters">
+            <label class="filter-field filter-field--search">
+              <span class="label-title">
+                <Search :size="14" aria-hidden="true" />
+                Search
               </span>
-              <div>
-                <h3>Fragment</h3>
-                <p>{{ selectedFragment.type }} / {{ selectedFragment.status }}</p>
-              </div>
-              <span v-if="fragmentDirty" class="dirty-pill">
-                <span aria-hidden="true"></span>
-                Unsaved changes
-              </span>
-            </div>
-            <RouterLink class="text-button" :to="fragmentDetailLocation(selectedFragment.id)">Open</RouterLink>
-          </header>
-          <label>
-            Title
-            <input v-model="fragmentDraft.title" />
-          </label>
-          <div class="form-grid two">
-            <label>
-              Type
-              <select v-model="fragmentDraft.type">
-                <option v-for="type in fragmentTypes" :key="type" :value="type">{{ type }}</option>
-              </select>
+              <input v-model="topicFragmentSearch" placeholder="Title or body..." />
             </label>
-            <label>
-              Status
-              <select v-model="fragmentDraft.status">
+            <label class="filter-field">
+              <span class="label-title">Status</span>
+              <select v-model="topicFragmentStatus">
+                <option value="">Any</option>
                 <option v-for="status in fragmentStatuses" :key="status" :value="status">{{ status }}</option>
               </select>
             </label>
-          </div>
-          <div class="field-block">
-            <div class="field-block-header">
-              <span>Body</span>
-              <button class="text-button" type="button" @click="bodyEditing = !bodyEditing">
-                {{ bodyEditing ? "Preview" : "Edit" }}
-              </button>
-            </div>
-            <textarea v-if="bodyEditing" v-model="fragmentDraft.body" rows="10" @blur="bodyEditing = false" />
-            <button v-else class="body-preview-button" type="button" @click="bodyEditing = true">
-              <MarkdownLatexRenderer :body="fragmentDraft.body" />
+            <label class="filter-field">
+              <span class="label-title">Type</span>
+              <select v-model="topicFragmentType">
+                <option value="">Any</option>
+                <option v-for="type in fragmentTypes" :key="type" :value="type">{{ type }}</option>
+              </select>
+            </label>
+            <label class="filter-field">
+              <span class="label-title">Origin</span>
+              <select v-model="topicFragmentOrigin">
+                <option value="">Any</option>
+                <option value="user_original">user_original</option>
+                <option value="assistant_generated">assistant_generated</option>
+                <option value="external_source">external_source</option>
+                <option value="mixed">mixed</option>
+                <option value="unknown">unknown</option>
+              </select>
+            </label>
+          </section>
+
+          <section class="topic-bulk-toolbar">
+            <button class="button subtle" type="button" :disabled="!filteredTopicFragments.length" @click="toggleAllTopicFragments">
+              <CheckSquare v-if="allFilteredTopicFragmentsSelected" :size="16" aria-hidden="true" />
+              <Square v-else :size="16" aria-hidden="true" />
+              {{ allFilteredTopicFragmentsSelected ? "Clear Selection" : "Select Shown" }}
             </button>
-          </div>
-          <div class="action-row">
-            <button class="button primary" type="button" :class="{ dirty: fragmentDirty }" @click="saveFragment">
+            <label>
+              Set status
+              <select v-model="bulkStatusTarget" :disabled="!selectedTopicFragmentIds.length || bulkBusy">
+                <option value="">Choose...</option>
+                <option v-for="status in fragmentStatuses" :key="status" :value="status">{{ status }}</option>
+              </select>
+            </label>
+            <button class="button subtle" type="button" :disabled="!bulkStatusTarget || !selectedTopicFragmentIds.length || bulkBusy" @click="applyBulkStatus">
               <Save :size="16" aria-hidden="true" />
-              Save
+              Apply
             </button>
-            <button class="button subtle" type="button" @click="removeFragmentFromTopic">
+            <button class="button subtle" type="button" :disabled="!selectedTopicFragmentIds.length || bulkBusy" @click="removeSelectedFromTopic">
               <Unlink :size="16" aria-hidden="true" />
               Remove From Topic
             </button>
-          </div>
-        </section>
-
-        <section v-else-if="!contextMode && selectedRelation" class="plain-section topic-panel">
-          <header class="section-header">
-            <div class="inspector-title">
-              <span class="panel-icon">
-                <Route :size="16" aria-hidden="true" />
-              </span>
-              <div>
-                <h3>Relation</h3>
-                <p>Adjust relation kind and confidence.</p>
-              </div>
-              <span v-if="relationDirty" class="dirty-pill">
-                <span aria-hidden="true"></span>
-                Unsaved changes
-              </span>
-            </div>
-          </header>
-          <p class="muted">{{ relationTitle(selectedRelation) }}</p>
-          <label>
-            Kind
-            <select v-model="relationDraft.relation_kind">
-              <option v-for="kind in relationKinds" :key="kind" :value="kind">{{ kind }}</option>
-            </select>
-          </label>
-          <label>
-            Confidence
-            <input v-model.number="relationDraft.confidence" min="0" max="1" step="0.01" type="number" />
-          </label>
-          <div class="action-row">
-            <button class="button primary" type="button" :class="{ dirty: relationDirty }" @click="saveRelation">
-              <Save :size="16" aria-hidden="true" />
-              Save
-            </button>
-            <button class="button danger" type="button" @click="deleteSelectedRelation">
+            <button class="button danger" type="button" :disabled="!selectedTopicFragmentIds.length || bulkBusy" @click="deleteTopicFragmentsConfirmOpen = true">
               <Trash2 :size="16" aria-hidden="true" />
               Delete
             </button>
-          </div>
-        </section>
+            <span class="muted">{{ selectedTopicFragmentIds.length }} selected</span>
+          </section>
 
-        <section v-else-if="!contextMode" class="plain-section muted-panel">
-          <div class="inspector-empty">
-            <span class="panel-icon">
-              <MousePointer2 :size="16" aria-hidden="true" />
-            </span>
-            <p>Select a node or relation to edit it.</p>
-          </div>
+          <section class="topic-fragment-card-grid">
+            <article
+              v-for="fragment in filteredTopicFragments"
+              :key="fragment.id"
+              class="topic-workspace-fragment-card"
+              :class="{ selected: selectedTopicFragmentSet.has(fragment.id), rejected: fragment.status === 'rejected' }"
+            >
+              <button class="topic-select-button" type="button" :aria-label="`Select ${fragment.title}`" @click="toggleTopicFragmentSelection(fragment.id)">
+                <CheckSquare v-if="selectedTopicFragmentSet.has(fragment.id)" :size="17" aria-hidden="true" />
+                <Square v-else :size="17" aria-hidden="true" />
+              </button>
+              <div>
+                <header>
+                  <strong>{{ fragment.title }}</strong>
+                  <span class="status" :data-status="fragment.status">{{ fragment.status }}</span>
+                </header>
+                <p class="topic-card-meta">{{ fragment.type }} / {{ fragment.origin_classification }} / {{ fragment.exactness }}</p>
+                <div class="card-tex-preview">
+                  <MarkdownLatexRenderer :body="fragment.body" />
+                </div>
+              </div>
+              <footer class="action-row">
+                <button class="button subtle" type="button" @click="inspectFragment(fragment.id)">
+                  <PanelRightOpen :size="16" aria-hidden="true" />
+                  Inspect
+                </button>
+                <RouterLink class="button subtle" :to="fragmentDetailLocation(fragment.id)">Open</RouterLink>
+              </footer>
+            </article>
+            <p v-if="!filteredTopicFragments.length" class="empty-state">No fragments match these filters.</p>
+          </section>
         </section>
-      </aside>
-    </div>
+      </section>
 
-    <Transition name="drawer-fade">
-      <div v-if="contextMode" class="context-drawer-scrim" @click.self="toggleContextMode">
-        <section class="context-drawer">
-        <header class="section-header context-drawer-header">
-          <div>
-            <span class="eyebrow">Prompt builder</span>
-            <h2>AI Context Pack</h2>
-            <p>{{ selectedContextItems.length }} selected in dependency order</p>
-          </div>
-          <button class="icon-button" type="button" aria-label="Close AI context drawer" @click="toggleContextMode">
-            <X :size="16" aria-hidden="true" />
-          </button>
-        </header>
-        <div class="context-drawer-body">
+      <section v-else-if="activeTab === 'context'" key="context" class="topic-workspace-panel">
+        <div class="topic-context-workspace">
           <section class="plain-section context-drawer-controls">
+            <header class="section-header">
+              <div>
+                <span class="eyebrow">Prompt builder</span>
+                <h2>AI Context Pack</h2>
+                <p>AI suggests selection and order; exported prompt keeps fragment text unchanged.</p>
+              </div>
+            </header>
             <label>
               Title
               <input v-model="contextTitle" />
@@ -247,7 +228,7 @@
               </button>
               <button class="button danger" type="button" :disabled="!hasContextSuggestionState" @click="discardContextSuggestion">
                 <RotateCcw :size="16" aria-hidden="true" />
-                Discard Suggestion
+                Discard
               </button>
             </div>
             <p v-if="contextError" class="error-text">{{ contextError }}</p>
@@ -255,17 +236,30 @@
               <p v-for="warning in contextWarnings" :key="`warning-${warning}`">{{ warning }}</p>
               <p v-for="question in missingContextQuestions" :key="`missing-${question}`">Missing context: {{ question }}</p>
             </section>
-            <details v-if="contextLogs.length" class="codex-log-panel">
-              <summary>Codex logs</summary>
-              <pre class="markdown-preview codex-log">{{ contextLogs.join("\n") }}</pre>
-            </details>
+            <label>
+              Add fragment
+              <input v-model="contextCandidateSearch" placeholder="Search topic fragments..." />
+            </label>
+            <section class="context-candidate-list">
+              <button
+                v-for="fragment in filteredContextCandidates"
+                :key="fragment.id"
+                class="context-candidate-row"
+                :class="{ selected: selectedContextIds.has(fragment.id), rejected: fragment.status === 'rejected' }"
+                type="button"
+                @click="toggleContextFragment(fragment.id)"
+              >
+                <span>{{ fragment.title }}</span>
+                <small>{{ fragment.type }} / {{ fragment.status }}</small>
+              </button>
+            </section>
           </section>
 
           <section class="plain-section context-order-panel">
             <header class="section-header">
               <div>
-                <h3>Prompt Order</h3>
-                <p>AI suggestion is applied here; you can still reorder manually.</p>
+                <h2>Prompt Order</h2>
+                <p>{{ selectedContextItems.length }} selected in dependency order</p>
               </div>
             </header>
             <section class="context-selection-list">
@@ -286,7 +280,7 @@
                 </footer>
               </article>
               <p v-if="!selectedContextItems.length" class="muted">
-                Click graph nodes or ask Codex for a suggestion.
+                Select fragments manually or ask Codex for a suggestion.
               </p>
             </section>
             <div class="action-row">
@@ -298,22 +292,258 @@
           </section>
 
           <section class="plain-section context-preview-panel">
-            <section v-if="topicContextPacks.length" class="plain-section">
-              <h3>Topic Packs</h3>
-              <ul class="compact-list">
-                <li v-for="pack in topicContextPacks" :key="pack.id">
-                  <button class="text-button" type="button" @click="exportContextPack(pack.id)">
-                    {{ pack.title }}
-                  </button>
-                  <span>{{ pack.items.length }} items</span>
-                </li>
-              </ul>
-            </section>
             <ContextPackPreview :markdown="contextExportedMarkdown" />
           </section>
         </div>
+      </section>
+
+      <section v-else key="history" class="topic-workspace-panel">
+        <section class="plain-section topic-pack-history">
+          <header class="section-header">
+            <div>
+              <span class="eyebrow">Context history</span>
+              <h2>Topic Packs</h2>
+              <p>{{ topicContextPacks.length }} saved prompt pack{{ topicContextPacks.length === 1 ? "" : "s" }}</p>
+            </div>
+          </header>
+          <section class="topic-pack-list">
+            <article v-for="pack in topicContextPacks" :key="pack.id" class="topic-pack-card">
+              <header>
+                <div>
+                  <input
+                    v-if="packEditingId === pack.id"
+                    v-model="packTitleDraft"
+                    aria-label="Context pack title"
+                  />
+                  <h3 v-else>{{ pack.title }}</h3>
+                  <small>{{ pack.items.length }} items / {{ formatDate(pack.updated_at) }}</small>
+                </div>
+                <span class="chip" data-chip="topic">{{ pack.topic_id || "No topic" }}</span>
+              </header>
+              <p>{{ pack.objective }}</p>
+              <footer class="action-row">
+                <button v-if="packEditingId === pack.id" class="button primary" type="button" @click="savePackTitle(pack)">
+                  <Save :size="16" aria-hidden="true" />
+                  Save
+                </button>
+                <button v-if="packEditingId === pack.id" class="button subtle" type="button" @click="cancelPackRename">
+                  <X :size="16" aria-hidden="true" />
+                  Cancel
+                </button>
+                <button v-else class="button subtle" type="button" @click="startPackRename(pack)">
+                  <Pencil :size="16" aria-hidden="true" />
+                  Rename
+                </button>
+                <button class="button subtle" type="button" @click="exportContextPack(pack.id)">
+                  <Download :size="16" aria-hidden="true" />
+                  Export
+                </button>
+                <button class="button danger" type="button" @click="packToDelete = pack">
+                  <Trash2 :size="16" aria-hidden="true" />
+                  Delete
+                </button>
+              </footer>
+            </article>
+            <p v-if="!topicContextPacks.length" class="empty-state">No context packs saved for this topic yet.</p>
+          </section>
+          <ContextPackPreview :markdown="contextExportedMarkdown" />
+        </section>
+      </section>
+    </Transition>
+
+    <Transition name="drawer-fade">
+      <div v-if="inspectorOpen" class="context-drawer-scrim" @click.self="closeInspector">
+        <section class="context-drawer topic-inspector-drawer">
+          <header class="section-header context-drawer-header">
+            <div>
+              <span class="eyebrow">{{ selectedFragment ? "Fragment inspector" : "Relation inspector" }}</span>
+              <h2>{{ selectedFragment?.title || "Relation" }}</h2>
+              <p v-if="selectedFragment">{{ selectedFragment.type }} / {{ selectedFragment.status }}</p>
+              <p v-else-if="selectedRelation">{{ relationTitle(selectedRelation) }}</p>
+            </div>
+            <button class="icon-button" type="button" aria-label="Close inspector" @click="closeInspector">
+              <X :size="16" aria-hidden="true" />
+            </button>
+          </header>
+
+          <section v-if="selectedFragment" class="topic-inspector-body">
+            <span v-if="fragmentDirty" class="dirty-pill">
+              <span aria-hidden="true"></span>
+              Unsaved changes
+            </span>
+            <label>
+              Title
+              <input v-model="fragmentDraft.title" />
+            </label>
+            <div class="form-grid two">
+              <label>
+                Type
+                <select v-model="fragmentDraft.type">
+                  <option v-for="type in fragmentTypes" :key="type" :value="type">{{ type }}</option>
+                </select>
+              </label>
+              <label>
+                Status
+                <select v-model="fragmentDraft.status">
+                  <option v-for="status in fragmentStatuses" :key="status" :value="status">{{ status }}</option>
+                </select>
+              </label>
+            </div>
+            <div class="field-block">
+              <div class="field-block-header">
+                <span>Body</span>
+                <button class="text-button" type="button" @click="bodyEditing = !bodyEditing">
+                  {{ bodyEditing ? "Preview" : "Edit" }}
+                </button>
+              </div>
+              <textarea v-if="bodyEditing" v-model="fragmentDraft.body" rows="12" @blur="bodyEditing = false" />
+              <button v-else class="body-preview-button" type="button" @click="bodyEditing = true">
+                <MarkdownLatexRenderer :body="fragmentDraft.body" />
+              </button>
+            </div>
+            <div class="action-row">
+              <button class="button primary" type="button" :class="{ dirty: fragmentDirty }" @click="saveFragment">
+                <Save :size="16" aria-hidden="true" />
+                Save
+              </button>
+              <button class="button subtle" type="button" @click="removeFragmentFromTopic">
+                <Unlink :size="16" aria-hidden="true" />
+                Remove From Topic
+              </button>
+              <RouterLink class="button subtle" :to="fragmentDetailLocation(selectedFragment.id)">Open Detail</RouterLink>
+            </div>
+          </section>
+
+          <section v-else-if="selectedRelation" class="topic-inspector-body">
+            <span v-if="relationDirty" class="dirty-pill">
+              <span aria-hidden="true"></span>
+              Unsaved changes
+            </span>
+            <p class="muted">{{ relationTitle(selectedRelation) }}</p>
+            <label>
+              Kind
+              <select v-model="relationDraft.relation_kind">
+                <option v-for="kind in relationKinds" :key="kind" :value="kind">{{ kind }}</option>
+              </select>
+            </label>
+            <label>
+              Confidence
+              <input v-model.number="relationDraft.confidence" min="0" max="1" step="0.01" type="number" />
+            </label>
+            <div class="action-row">
+              <button class="button primary" type="button" :class="{ dirty: relationDirty }" @click="saveRelation">
+                <Save :size="16" aria-hidden="true" />
+                Save
+              </button>
+              <button class="button danger" type="button" @click="deleteSelectedRelation">
+                <Trash2 :size="16" aria-hidden="true" />
+                Delete
+              </button>
+            </div>
+          </section>
         </section>
       </div>
+    </Transition>
+
+    <Transition name="drawer-fade">
+      <div v-if="addDrawerOpen" class="context-drawer-scrim" @click.self="addDrawerOpen = false">
+        <section class="context-drawer topic-add-drawer">
+          <header class="section-header context-drawer-header">
+            <div>
+              <span class="eyebrow">Attach fragments</span>
+              <h2>Add To Topic</h2>
+              <p>{{ selectedAddFragmentIds.length }} selected / {{ filteredAddableFragments.length }} candidates</p>
+            </div>
+            <button class="icon-button" type="button" aria-label="Close add fragments drawer" @click="addDrawerOpen = false">
+              <X :size="16" aria-hidden="true" />
+            </button>
+          </header>
+          <section class="topic-add-body">
+            <label>
+              Search candidates
+              <input v-model="addSearch" placeholder="Title, body, type..." />
+            </label>
+            <div class="action-row">
+              <button class="button subtle" type="button" :disabled="!filteredAddableFragments.length" @click="toggleAllAddCandidates">
+                <CheckSquare v-if="allFilteredAddCandidatesSelected" :size="16" aria-hidden="true" />
+                <Square v-else :size="16" aria-hidden="true" />
+                {{ allFilteredAddCandidatesSelected ? "Clear Shown" : "Select Shown" }}
+              </button>
+              <button class="button primary" type="button" :disabled="!selectedAddFragmentIds.length || bulkBusy" @click="addSelectedFragmentsToTopic">
+                <FolderPlus :size="16" aria-hidden="true" />
+                Add Selected
+              </button>
+            </div>
+            <section class="topic-add-candidate-list">
+              <article
+                v-for="fragment in filteredAddableFragments"
+                :key="fragment.id"
+                class="topic-add-candidate"
+                :class="{ selected: selectedAddFragmentSet.has(fragment.id), unsorted: !fragment.topic_id }"
+              >
+                <button class="topic-select-button" type="button" :aria-label="`Select ${fragment.title}`" @click="toggleAddFragmentSelection(fragment.id)">
+                  <CheckSquare v-if="selectedAddFragmentSet.has(fragment.id)" :size="17" aria-hidden="true" />
+                  <Square v-else :size="17" aria-hidden="true" />
+                </button>
+                <div>
+                  <strong>{{ fragment.title }}</strong>
+                  <small>{{ candidateTopicLabel(fragment) }} / {{ fragment.type }} / {{ fragment.status }}</small>
+                </div>
+                <span class="status" :data-status="fragment.status">{{ fragment.status }}</span>
+              </article>
+              <p v-if="!filteredAddableFragments.length" class="empty-state">No fragments available to add.</p>
+            </section>
+          </section>
+        </section>
+      </div>
+    </Transition>
+
+    <Transition name="modal-fade">
+      <section v-if="deleteTopicFragmentsConfirmOpen" class="modal-backdrop" @click.self="deleteTopicFragmentsConfirmOpen = false">
+        <div class="modal-panel danger-panel">
+          <header class="section-header">
+            <div>
+              <span class="eyebrow">Permanent delete</span>
+              <h2>Delete selected fragments?</h2>
+              <p>This removes fragments, relations, source pointers, and context-pack links. Rejected is usually safer.</p>
+            </div>
+            <button class="icon-button" type="button" aria-label="Close delete confirmation" @click="deleteTopicFragmentsConfirmOpen = false">
+              <X :size="16" aria-hidden="true" />
+            </button>
+          </header>
+          <div class="action-row">
+            <button class="button subtle" type="button" @click="deleteTopicFragmentsConfirmOpen = false">Cancel</button>
+            <button class="button danger" type="button" @click="deleteSelectedTopicFragments">
+              <Trash2 :size="16" aria-hidden="true" />
+              Delete {{ selectedTopicFragmentIds.length }}
+            </button>
+          </div>
+        </div>
+      </section>
+    </Transition>
+
+    <Transition name="modal-fade">
+      <section v-if="packToDelete" class="modal-backdrop" @click.self="packToDelete = null">
+        <div class="modal-panel danger-panel">
+          <header class="section-header">
+            <div>
+              <span class="eyebrow">Delete pack</span>
+              <h2>{{ packToDelete.title }}</h2>
+              <p>This deletes the saved context pack record. It does not delete fragments.</p>
+            </div>
+            <button class="icon-button" type="button" aria-label="Close delete confirmation" @click="packToDelete = null">
+              <X :size="16" aria-hidden="true" />
+            </button>
+          </header>
+          <div class="action-row">
+            <button class="button subtle" type="button" @click="packToDelete = null">Cancel</button>
+            <button class="button danger" type="button" @click="deletePack">
+              <Trash2 :size="16" aria-hidden="true" />
+              Delete Pack
+            </button>
+          </div>
+        </div>
+      </section>
     </Transition>
   </section>
 </template>
@@ -327,15 +557,23 @@ import { useRouter } from "vue-router";
 import {
   ArrowLeft,
   Brain,
+  CheckSquare,
+  Download,
   FileText,
-  MousePointer2,
+  FolderPlus,
+  History,
+  Layers,
+  List,
   Network,
   PackagePlus,
-  Plus,
+  PanelRightOpen,
+  Pencil,
   RefreshCw,
   RotateCcw,
   Route,
   Save,
+  Search,
+  Square,
   Trash2,
   Unlink,
   X,
@@ -355,8 +593,20 @@ import ContextPackPreview from "../components/ContextPackPreview.vue";
 import MarkdownLatexRenderer from "../components/MarkdownLatexRenderer.vue";
 import { useAILogsStore } from "../stores/aiLogs";
 import { useSettingsStore } from "../stores/settings";
-import type { ContextPack, ContextPackItemInput, ContextPackSuggestJob, ContextPackSuggestResult, Fragment, FragmentStatus, FragmentType, Relation, TopicGraph } from "../types";
+import type {
+  ContextPack,
+  ContextPackItemInput,
+  ContextPackSuggestJob,
+  ContextPackSuggestResult,
+  Fragment,
+  FragmentStatus,
+  FragmentType,
+  Relation,
+  TopicGraph,
+} from "../types";
 import { fragmentStatuses, fragmentTypes } from "../types";
+
+type WorkspaceTab = "graph" | "fragments" | "context" | "history";
 
 const props = defineProps<{ id: string }>();
 const router = useRouter();
@@ -366,18 +616,29 @@ const graph = ref<TopicGraph | null>(null);
 const allFragments = ref<Fragment[]>([]);
 const nodes = ref<any[]>([]);
 const edges = ref<any[]>([]);
+const activeTab = ref<WorkspaceTab>("graph");
 const selectedFragmentId = ref("");
 const selectedRelationId = ref("");
-const fragmentToAdd = ref("");
 const error = ref("");
 const message = ref("");
 const bodyEditing = ref(false);
-const contextMode = ref(false);
+const addDrawerOpen = ref(false);
+const bulkBusy = ref(false);
+const topicFragmentSearch = ref("");
+const topicFragmentStatus = ref("");
+const topicFragmentType = ref("");
+const topicFragmentOrigin = ref("");
+const selectedTopicFragmentIds = ref<string[]>([]);
+const bulkStatusTarget = ref("");
+const deleteTopicFragmentsConfirmOpen = ref(false);
+const addSearch = ref("");
+const selectedAddFragmentIds = ref<string[]>([]);
 const contextSuggesting = ref(false);
 const contextSaving = ref(false);
 const contextTitle = ref("AI context pack");
 const contextObjective = ref("State the current mathematical objective here.");
 const contextTaskPrompt = ref("Help me reason about this objective. Identify useful dependencies, gaps, and next steps.");
+const contextCandidateSearch = ref("");
 const selectedContextItems = ref<ContextPackItemInput[]>([]);
 const contextWarnings = ref<string[]>([]);
 const missingContextQuestions = ref<string[]>([]);
@@ -387,16 +648,27 @@ const contextExportedMarkdown = ref("");
 const topicContextPacks = ref<ContextPack[]>([]);
 const currentContextJob = ref<ContextPackSuggestJob | null>(null);
 const appliedContextJobId = ref("");
+const packEditingId = ref("");
+const packTitleDraft = ref("");
+const packToDelete = ref<ContextPack | null>(null);
 let contextPollTimer: number | undefined;
+
+const workspaceTabs = [
+  { id: "graph" as const, label: "Graph", icon: Network },
+  { id: "fragments" as const, label: "Fragments", icon: Layers },
+  { id: "context" as const, label: "Context", icon: Brain },
+  { id: "history" as const, label: "History", icon: History },
+];
+
 const fragmentDraft = reactive({
   title: "",
   type: "ContextNote" as FragmentType,
   status: "working" as FragmentStatus,
-  body: ""
+  body: "",
 });
 const relationDraft = reactive({
   relation_kind: "depends_on",
-  confidence: null as number | null
+  confidence: null as number | null,
 });
 const relationKinds = [
   "depends_on",
@@ -421,7 +693,7 @@ const relationKinds = [
   "specializes_external_result",
   "questions_external_claim",
   "compares_with",
-  "came_from"
+  "came_from",
 ];
 
 const selectedFragment = computed(() =>
@@ -430,6 +702,7 @@ const selectedFragment = computed(() =>
 const selectedRelation = computed(() =>
   graph.value?.relations.find((relation) => relation.id === selectedRelationId.value) || null
 );
+const inspectorOpen = computed(() => activeTab.value === "graph" && (!!selectedFragment.value || !!selectedRelation.value));
 const fragmentDirty = computed(() => {
   if (!selectedFragment.value) return false;
   return (
@@ -447,14 +720,62 @@ const relationDirty = computed(() => {
   );
 });
 const hasUnsavedChanges = computed(() => fragmentDirty.value || relationDirty.value);
-const addableFragments = computed(() => {
-  const currentIds = new Set(graph.value?.fragments.map((fragment) => fragment.id) || []);
-  return allFragments.value.filter((fragment) => !currentIds.has(fragment.id));
+const topicFragments = computed(() => graph.value?.fragments || []);
+const topicFragmentSet = computed(() => new Set(topicFragments.value.map((fragment) => fragment.id)));
+const selectedTopicFragmentSet = computed(() => new Set(selectedTopicFragmentIds.value));
+const addableFragments = computed(() =>
+  allFragments.value
+    .filter((fragment) => !topicFragmentSet.value.has(fragment.id))
+    .sort((left, right) => Number(Boolean(left.topic_id)) - Number(Boolean(right.topic_id)) || left.title.localeCompare(right.title))
+);
+const selectedAddFragmentSet = computed(() => new Set(selectedAddFragmentIds.value));
+const filteredTopicFragments = computed(() => {
+  const query = topicFragmentSearch.value.trim().toLowerCase();
+  return topicFragments.value.filter((fragment) => {
+    const matchesSearch =
+      !query ||
+      fragment.title.toLowerCase().includes(query) ||
+      fragment.body.toLowerCase().includes(query);
+    const matchesStatus = !topicFragmentStatus.value || fragment.status === topicFragmentStatus.value;
+    const matchesType = !topicFragmentType.value || fragment.type === topicFragmentType.value;
+    const matchesOrigin = !topicFragmentOrigin.value || fragment.origin_classification === topicFragmentOrigin.value;
+    return matchesSearch && matchesStatus && matchesType && matchesOrigin;
+  });
 });
+const allFilteredTopicFragmentsSelected = computed(
+  () =>
+    !!filteredTopicFragments.value.length &&
+    filteredTopicFragments.value.every((fragment) => selectedTopicFragmentSet.value.has(fragment.id))
+);
+const filteredAddableFragments = computed(() => {
+  const query = addSearch.value.trim().toLowerCase();
+  return addableFragments.value.filter(
+    (fragment) =>
+      !query ||
+      fragment.title.toLowerCase().includes(query) ||
+      fragment.body.toLowerCase().includes(query) ||
+      fragment.type.toLowerCase().includes(query)
+  );
+});
+const allFilteredAddCandidatesSelected = computed(
+  () =>
+    !!filteredAddableFragments.value.length &&
+    filteredAddableFragments.value.every((fragment) => selectedAddFragmentSet.value.has(fragment.id))
+);
 const contextCandidateFragments = computed(() =>
-  (graph.value?.fragments || []).filter((fragment) => fragment.status !== "rejected")
+  topicFragments.value.filter((fragment) => fragment.status !== "rejected")
 );
 const selectedContextIds = computed(() => new Set(selectedContextItems.value.map((item) => item.fragment_id)));
+const filteredContextCandidates = computed(() => {
+  const query = contextCandidateSearch.value.trim().toLowerCase();
+  return contextCandidateFragments.value.filter(
+    (fragment) =>
+      !query ||
+      fragment.title.toLowerCase().includes(query) ||
+      fragment.body.toLowerCase().includes(query) ||
+      fragment.type.toLowerCase().includes(query)
+  );
+});
 const hasContextSuggestionState = computed(
   () =>
     !!selectedContextItems.value.length ||
@@ -462,7 +783,7 @@ const hasContextSuggestionState = computed(
     !!missingContextQuestions.value.length ||
     !!contextLogs.value.length ||
     !!contextExportedMarkdown.value ||
-    !!currentContextJob.value,
+    !!currentContextJob.value
 );
 
 async function load() {
@@ -473,15 +794,27 @@ async function load() {
     graph.value = await api.getTopicGraph(props.id);
     allFragments.value = await api.listFragments();
     topicContextPacks.value = await api.listTopicContextPacks(props.id);
-    if (graph.value) {
+    if (graph.value && contextTitle.value === "AI context pack") {
       contextTitle.value = `${graph.value.topic.title} AI context`;
     }
+    pruneLocalSelections();
     syncFlowElements();
     syncDrafts();
     restoreContextSuggestionFromGlobalRun();
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : String(caught);
   }
+}
+
+function changeTab(tab: WorkspaceTab) {
+  if (tab !== activeTab.value && !confirmDiscardChanges()) return;
+  activeTab.value = tab;
+  bodyEditing.value = false;
+  if (tab !== "graph") {
+    selectedFragmentId.value = "";
+    selectedRelationId.value = "";
+  }
+  syncFlowElements();
 }
 
 function syncFlowElements() {
@@ -504,11 +837,10 @@ function syncFlowElements() {
         "topic-fragment-node",
         selectedFragmentId.value === fragment.id ? "selected" : "",
         fragmentDirty.value && selectedFragmentId.value === fragment.id ? "dirty" : "",
-        contextMode.value ? "context-mode" : "",
         selectedContextIds.value.has(fragment.id) ? "context-selected" : "",
         fragment.origin_classification === "assistant_generated" || fragment.origin_classification === "mixed"
           ? "ai"
-          : ""
+          : "",
       ].filter(Boolean).join(" "),
       data: fragment,
     };
@@ -566,7 +898,7 @@ function handlePositionsFor(fragmentId: string, positions: Record<string, { x: n
 function averageDirectionPosition(
   origin: { x: number; y: number },
   points: Array<{ x: number; y: number }>,
-  fallback: Position,
+  fallback: Position
 ) {
   if (!points.length) return fallback;
   const delta = points.reduce(
@@ -574,7 +906,7 @@ function averageDirectionPosition(
       x: sum.x + point.x - origin.x,
       y: sum.y + point.y - origin.y,
     }),
-    { x: 0, y: 0 },
+    { x: 0, y: 0 }
   );
   if (Math.abs(delta.x) >= Math.abs(delta.y)) {
     return delta.x >= 0 ? Position.Right : Position.Left;
@@ -592,11 +924,6 @@ function defaultPosition(index: number) {
 }
 
 function selectNode(event: NodeMouseEvent) {
-  if (contextMode.value) {
-    toggleContextFragment(event.node.id);
-    syncFlowElements();
-    return;
-  }
   if (event.node.id !== selectedFragmentId.value || selectedRelationId.value) {
     if (!confirmDiscardChanges()) return;
   }
@@ -608,7 +935,6 @@ function selectNode(event: NodeMouseEvent) {
 }
 
 function selectEdge(event: EdgeMouseEvent) {
-  if (contextMode.value) return;
   if (event.edge.id !== selectedRelationId.value || selectedFragmentId.value) {
     if (!confirmDiscardChanges()) return;
   }
@@ -619,15 +945,113 @@ function selectEdge(event: EdgeMouseEvent) {
   syncFlowElements();
 }
 
-function toggleContextMode() {
-  if (!contextMode.value && !confirmDiscardChanges()) return;
-  contextMode.value = !contextMode.value;
-  if (contextMode.value) {
-    selectedFragmentId.value = "";
-    selectedRelationId.value = "";
-    bodyEditing.value = false;
-  }
+function inspectFragment(fragmentId: string) {
+  if (!confirmDiscardChanges()) return;
+  activeTab.value = "graph";
+  selectedFragmentId.value = fragmentId;
+  selectedRelationId.value = "";
+  bodyEditing.value = false;
+  syncDrafts();
   syncFlowElements();
+}
+
+function closeInspector() {
+  if (!confirmDiscardChanges()) return;
+  selectedFragmentId.value = "";
+  selectedRelationId.value = "";
+  bodyEditing.value = false;
+  syncFlowElements();
+}
+
+function toggleTopicFragmentSelection(fragmentId: string) {
+  const next = new Set(selectedTopicFragmentIds.value);
+  if (next.has(fragmentId)) next.delete(fragmentId);
+  else next.add(fragmentId);
+  selectedTopicFragmentIds.value = [...next];
+}
+
+function toggleAllTopicFragments() {
+  if (allFilteredTopicFragmentsSelected.value) {
+    const filteredIds = new Set(filteredTopicFragments.value.map((fragment) => fragment.id));
+    selectedTopicFragmentIds.value = selectedTopicFragmentIds.value.filter((id) => !filteredIds.has(id));
+  } else {
+    selectedTopicFragmentIds.value = [...new Set([...selectedTopicFragmentIds.value, ...filteredTopicFragments.value.map((fragment) => fragment.id)])];
+  }
+}
+
+function toggleAddFragmentSelection(fragmentId: string) {
+  const next = new Set(selectedAddFragmentIds.value);
+  if (next.has(fragmentId)) next.delete(fragmentId);
+  else next.add(fragmentId);
+  selectedAddFragmentIds.value = [...next];
+}
+
+function toggleAllAddCandidates() {
+  if (allFilteredAddCandidatesSelected.value) {
+    const filteredIds = new Set(filteredAddableFragments.value.map((fragment) => fragment.id));
+    selectedAddFragmentIds.value = selectedAddFragmentIds.value.filter((id) => !filteredIds.has(id));
+  } else {
+    selectedAddFragmentIds.value = [...new Set([...selectedAddFragmentIds.value, ...filteredAddableFragments.value.map((fragment) => fragment.id)])];
+  }
+}
+
+async function addSelectedFragmentsToTopic() {
+  if (!graph.value || !selectedAddFragmentIds.value.length) return;
+  bulkBusy.value = true;
+  await runGraphChange(async () => {
+    await api.bulkUpdateFragments({
+      ids: selectedAddFragmentIds.value,
+      topic_id: graph.value!.topic.id,
+      change_note: `Added to topic ${graph.value!.topic.title}.`,
+    });
+    selectedAddFragmentIds.value = [];
+    addSearch.value = "";
+    addDrawerOpen.value = false;
+    message.value = "Fragments added to topic.";
+  });
+  bulkBusy.value = false;
+}
+
+async function removeSelectedFromTopic() {
+  if (!selectedTopicFragmentIds.value.length || !graph.value) return;
+  bulkBusy.value = true;
+  await runGraphChange(async () => {
+    await api.bulkUpdateFragments({
+      ids: selectedTopicFragmentIds.value,
+      topic_id: null,
+      change_note: `Removed from topic ${graph.value!.topic.title}.`,
+    });
+    selectedTopicFragmentIds.value = [];
+    message.value = "Fragments removed from topic.";
+  });
+  bulkBusy.value = false;
+}
+
+async function applyBulkStatus() {
+  if (!selectedTopicFragmentIds.value.length || !bulkStatusTarget.value) return;
+  bulkBusy.value = true;
+  await runGraphChange(async () => {
+    await api.bulkUpdateFragments({
+      ids: selectedTopicFragmentIds.value,
+      status: bulkStatusTarget.value,
+      change_note: `Bulk status update from topic ${graph.value?.topic.title || props.id}.`,
+    });
+    bulkStatusTarget.value = "";
+    message.value = "Fragment statuses updated.";
+  });
+  bulkBusy.value = false;
+}
+
+async function deleteSelectedTopicFragments() {
+  if (!selectedTopicFragmentIds.value.length) return;
+  bulkBusy.value = true;
+  await runGraphChange(async () => {
+    await api.bulkDeleteFragments(selectedTopicFragmentIds.value);
+    selectedTopicFragmentIds.value = [];
+    deleteTopicFragmentsConfirmOpen.value = false;
+    message.value = "Fragments deleted.";
+  });
+  bulkBusy.value = false;
 }
 
 function toggleContextFragment(fragmentId: string) {
@@ -776,14 +1200,14 @@ function restoreContextSuggestionFromGlobalRun() {
       item.context?.topic_id === props.id &&
       item.status === "succeeded" &&
       item.result &&
-      item.id !== appliedContextJobId.value,
+      item.id !== appliedContextJobId.value
   );
   if (!run) return;
   const result = run.result as ContextPackSuggestResult;
   if (!result.suggestion) return;
   applyContextSuggestionResult(result);
   contextLogs.value = run.logs;
-  contextMode.value = true;
+  activeTab.value = "context";
   contextSuggesting.value = false;
   appliedContextJobId.value = run.id;
   message.value = "Restored completed context suggestion.";
@@ -846,6 +1270,42 @@ async function exportContextPack(packId: string) {
   }
 }
 
+function startPackRename(pack: ContextPack) {
+  packEditingId.value = pack.id;
+  packTitleDraft.value = pack.title;
+}
+
+function cancelPackRename() {
+  packEditingId.value = "";
+  packTitleDraft.value = "";
+}
+
+async function savePackTitle(pack: ContextPack) {
+  if (!packTitleDraft.value.trim()) return;
+  error.value = "";
+  try {
+    const updated = await api.updateContextPack(pack.id, { title: packTitleDraft.value.trim() });
+    topicContextPacks.value = topicContextPacks.value.map((item) => (item.id === updated.id ? updated : item));
+    cancelPackRename();
+    message.value = "Context pack renamed.";
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : String(caught);
+  }
+}
+
+async function deletePack() {
+  if (!packToDelete.value) return;
+  error.value = "";
+  try {
+    await api.deleteContextPack(packToDelete.value.id);
+    topicContextPacks.value = topicContextPacks.value.filter((pack) => pack.id !== packToDelete.value?.id);
+    packToDelete.value = null;
+    message.value = "Context pack deleted.";
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : String(caught);
+  }
+}
+
 function syncDrafts() {
   if (selectedFragment.value) {
     fragmentDraft.title = selectedFragment.value.title;
@@ -878,6 +1338,7 @@ async function saveLayout(_event?: NodeDragEvent) {
 
 async function autoArrangeGraph() {
   if (!graph.value) return;
+  activeTab.value = "graph";
   const arranged = arrangedPositions();
   nodes.value = nodes.value.map((node) => ({
     ...node,
@@ -901,7 +1362,7 @@ function arrangedPositions() {
     outgoing.get(relation.source_fragment_id)?.push(relation.target_fragment_id);
     incomingCount.set(
       relation.target_fragment_id,
-      (incomingCount.get(relation.target_fragment_id) || 0) + 1,
+      (incomingCount.get(relation.target_fragment_id) || 0) + 1
     );
   });
   const levels = new Map<string, number>();
@@ -963,9 +1424,9 @@ async function createGraphRelation(connection: Connection) {
   if (!connection.source || !connection.target || connection.source === connection.target) return;
   await runGraphChange(async () => {
     await api.createRelation({
-      source_fragment_id: connection.source,
+      source_fragment_id: connection.source!,
       relation_kind: "depends_on",
-      target_fragment_id: connection.target,
+      target_fragment_id: connection.target!,
       confidence: null,
     });
     message.value = "Relation created.";
@@ -991,7 +1452,7 @@ async function saveFragment() {
       type: fragmentDraft.type,
       status: fragmentDraft.status,
       body: fragmentDraft.body,
-      change_note: "Edited from topic map."
+      change_note: "Edited from topic workspace.",
     });
     bodyEditing.value = false;
     message.value = "Fragment saved.";
@@ -1003,24 +1464,10 @@ async function removeFragmentFromTopic() {
   await runGraphChange(async () => {
     await api.updateFragment(selectedFragment.value!.id, {
       topic_id: null,
-      change_note: `Removed from topic ${graph.value?.topic.title || props.id}.`
+      change_note: `Removed from topic ${graph.value?.topic.title || props.id}.`,
     });
     selectedFragmentId.value = "";
     message.value = "Fragment removed from topic.";
-  });
-}
-
-async function addFragmentToTopic() {
-  if (!fragmentToAdd.value || !graph.value) return;
-  if (!confirmDiscardChanges()) return;
-  await runGraphChange(async () => {
-    await api.updateFragment(fragmentToAdd.value, {
-      topic_id: graph.value!.topic.id,
-      change_note: `Added to topic ${graph.value!.topic.title}.`
-    });
-    selectedFragmentId.value = fragmentToAdd.value;
-    fragmentToAdd.value = "";
-    message.value = "Fragment added to topic.";
   });
 }
 
@@ -1064,17 +1511,28 @@ async function runGraphChange(operation: () => Promise<void>) {
     const selectedRelationBeforeLoad = selectedRelationId.value;
     graph.value = await api.getTopicGraph(props.id);
     allFragments.value = await api.listFragments();
+    topicContextPacks.value = await api.listTopicContextPacks(props.id);
     selectedFragmentId.value = graph.value.fragments.some((fragment) => fragment.id === selectedFragmentBeforeLoad)
       ? selectedFragmentBeforeLoad
       : "";
     selectedRelationId.value = graph.value.relations.some((relation) => relation.id === selectedRelationBeforeLoad)
       ? selectedRelationBeforeLoad
       : "";
+    pruneLocalSelections();
     syncFlowElements();
     syncDrafts();
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : String(caught);
   }
+}
+
+function pruneLocalSelections() {
+  const topicIds = new Set(topicFragments.value.map((fragment) => fragment.id));
+  const allIds = new Set(allFragments.value.map((fragment) => fragment.id));
+  selectedTopicFragmentIds.value = selectedTopicFragmentIds.value.filter((id) => topicIds.has(id));
+  selectedAddFragmentIds.value = selectedAddFragmentIds.value.filter((id) => allIds.has(id) && !topicIds.has(id));
+  selectedContextItems.value = selectedContextItems.value.filter((item) => topicIds.has(item.fragment_id));
+  normalizeContextOrder();
 }
 
 function relationTitle(relation: Relation) {
@@ -1083,18 +1541,29 @@ function relationTitle(relation: Relation) {
   return `${source?.title || relation.source_fragment_id} -> ${target?.title || relation.target_fragment_id}`;
 }
 
+function candidateTopicLabel(fragment: Fragment) {
+  if (!fragment.topic_id) return "Unsorted";
+  return `Topic: ${fragment.topic_id}`;
+}
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleString();
+}
+
 onMounted(() => {
   window.addEventListener("beforeunload", warnBeforeUnload);
   void load();
 });
+
 watch(
   () => aiLogs.runs.map((run) => `${run.id}:${run.status}:${run.updated_at}`).join("|"),
   () => {
     if (graph.value) restoreContextSuggestionFromGlobalRun();
-  },
+  }
 );
+
 onBeforeUnmount(() => {
   window.removeEventListener("beforeunload", warnBeforeUnload);
   clearContextPollTimer();
 });
-          </script>
+</script>
