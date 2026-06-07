@@ -5,6 +5,7 @@ import type {
   AIExtractRequest,
   AIExtractResult,
   AIExtractJob,
+  AppHealth,
   ContextPack,
   ContextPackItemInput,
   ContextPackSuggestJob,
@@ -57,6 +58,9 @@ function queryString(filters: FragmentFilters): string {
 }
 
 export const api = {
+  health() {
+    return request<AppHealth>("/api/health");
+  },
   listFragments(filters: FragmentFilters = {}) {
     return request<Fragment[]>(`/api/fragments${queryString(filters)}`);
   },
