@@ -33,6 +33,22 @@
 
     <div class="topic-map-grid">
       <section class="topic-graph-panel">
+        <div class="topic-graph-toolbar">
+          <div>
+            <span class="panel-icon">
+              <Network :size="16" aria-hidden="true" />
+            </span>
+            <div>
+              <strong>Topic Graph</strong>
+              <small>Drag nodes, connect handles, double-click to open detail.</small>
+            </div>
+          </div>
+          <div class="topic-graph-legend">
+            <span class="chip" data-chip="topic">{{ graph?.fragments.length || 0 }} nodes</span>
+            <span class="chip" data-chip="exactness">{{ graph?.relations.length || 0 }} relations</span>
+            <span v-if="contextMode" class="chip" data-chip="ai">AI context mode</span>
+          </div>
+        </div>
         <VueFlow
           v-model:nodes="nodes"
           v-model:edges="edges"
@@ -50,12 +66,25 @@
 
       <aside class="topic-map-side">
         <section v-if="contextMode" class="plain-section muted-panel">
-          <p>AI context selection is active. Click graph nodes to add or remove them from the prompt order.</p>
+          <div class="inspector-empty">
+            <span class="panel-icon">
+              <Brain :size="16" aria-hidden="true" />
+            </span>
+            <p>AI context selection is active. Click graph nodes to add or remove them from the prompt order.</p>
+          </div>
         </section>
 
         <section v-else class="plain-section topic-panel">
           <header class="section-header">
-            <h3>Add Fragment</h3>
+            <div class="inspector-title">
+              <span class="panel-icon">
+                <Plus :size="16" aria-hidden="true" />
+              </span>
+              <div>
+                <h3>Add Fragment</h3>
+                <p>Attach an existing fragment to this topic.</p>
+              </div>
+            </div>
           </header>
           <label>
             Existing fragment
@@ -75,7 +104,13 @@
         <section v-if="!contextMode && selectedFragment" class="plain-section topic-panel">
           <header class="section-header">
             <div class="inspector-title">
-              <h3>Fragment</h3>
+              <span class="panel-icon">
+                <FileText :size="16" aria-hidden="true" />
+              </span>
+              <div>
+                <h3>Fragment</h3>
+                <p>{{ selectedFragment.type }} / {{ selectedFragment.status }}</p>
+              </div>
               <span v-if="fragmentDirty" class="dirty-pill">
                 <span aria-hidden="true"></span>
                 Unsaved changes
@@ -128,7 +163,13 @@
         <section v-else-if="!contextMode && selectedRelation" class="plain-section topic-panel">
           <header class="section-header">
             <div class="inspector-title">
-              <h3>Relation</h3>
+              <span class="panel-icon">
+                <Route :size="16" aria-hidden="true" />
+              </span>
+              <div>
+                <h3>Relation</h3>
+                <p>Adjust relation kind and confidence.</p>
+              </div>
               <span v-if="relationDirty" class="dirty-pill">
                 <span aria-hidden="true"></span>
                 Unsaved changes
@@ -159,15 +200,22 @@
         </section>
 
         <section v-else-if="!contextMode" class="plain-section muted-panel">
-          <p>Select a node or relation to edit it.</p>
+          <div class="inspector-empty">
+            <span class="panel-icon">
+              <MousePointer2 :size="16" aria-hidden="true" />
+            </span>
+            <p>Select a node or relation to edit it.</p>
+          </div>
         </section>
       </aside>
     </div>
 
-    <div v-if="contextMode" class="context-drawer-scrim" @click.self="toggleContextMode">
-      <section class="context-drawer">
-        <header class="section-header">
+    <Transition name="drawer-fade">
+      <div v-if="contextMode" class="context-drawer-scrim" @click.self="toggleContextMode">
+        <section class="context-drawer">
+        <header class="section-header context-drawer-header">
           <div>
+            <span class="eyebrow">Prompt builder</span>
             <h2>AI Context Pack</h2>
             <p>{{ selectedContextItems.length }} selected in dependency order</p>
           </div>
@@ -264,8 +312,9 @@
             <ContextPackPreview :markdown="contextExportedMarkdown" />
           </section>
         </div>
-      </section>
-    </div>
+        </section>
+      </div>
+    </Transition>
   </section>
 </template>
 
@@ -278,11 +327,14 @@ import { useRouter } from "vue-router";
 import {
   ArrowLeft,
   Brain,
+  FileText,
+  MousePointer2,
   Network,
   PackagePlus,
   Plus,
   RefreshCw,
   RotateCcw,
+  Route,
   Save,
   Trash2,
   Unlink,

@@ -1,7 +1,15 @@
 <template>
   <section class="plain-section">
-    <h3>{{ title }}</h3>
-    <p v-if="!relations.length" class="muted">No relations recorded.</p>
+    <header class="section-header">
+      <div>
+        <h3>{{ title }}</h3>
+        <p>{{ relations.length }} relation{{ relations.length === 1 ? "" : "s" }}</p>
+      </div>
+      <span class="panel-icon">
+        <GitBranch :size="16" aria-hidden="true" />
+      </span>
+    </header>
+    <p v-if="!relations.length" class="empty-state">No relations recorded.</p>
     <ul v-else class="compact-list">
       <li v-for="relation in relations" :key="relation.id" class="relation-row">
         <code>{{ relation.source_fragment_id }}</code>
@@ -18,7 +26,7 @@
           aria-label="Relation confidence"
           @change="updateConfidence(relation, $event)"
         />
-        <button class="icon-button" type="button" title="Delete relation" @click="$emit('delete', relation.id)">
+        <button class="icon-button" type="button" aria-label="Delete relation" title="Delete relation" @click="$emit('delete', relation.id)">
           <Trash2 :size="16" aria-hidden="true" />
         </button>
       </li>
@@ -27,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { Trash2 } from "lucide-vue-next";
+import { GitBranch, Trash2 } from "lucide-vue-next";
 import type { Relation } from "../types";
 
 defineProps<{ title: string; relations: Relation[] }>();
@@ -75,4 +83,3 @@ function updateConfidence(relation: Relation, event: Event) {
   });
 }
 </script>
-

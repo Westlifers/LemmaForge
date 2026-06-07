@@ -24,7 +24,7 @@
         <div v-else class="fragment-preview">
           <div class="metadata-strip">
             <span class="badge">{{ fragment.type }}</span>
-            <span class="status" :data-status="fragment.status">{{ fragment.status }}</span>
+            <StatusBadge :status="fragment.status" />
             <span class="chip" data-chip="origin">Origin: {{ fragment.origin_classification }}</span>
             <span v-if="isAiExtracted" class="chip" data-chip="ai">AI extracted</span>
             <span class="chip" data-chip="exactness">Exactness: {{ fragment.exactness }}</span>
@@ -115,27 +115,36 @@
               Delete
             </button>
           </div>
-          <Transition name="collapse">
-            <div v-if="deleteConfirmOpen" class="delete-confirmation">
-              <div class="warning-heading">
-                <AlertTriangle :size="18" aria-hidden="true" />
-                <strong>Permanent delete</strong>
-              </div>
-              <p>
-                This removes the fragment from SQLite, deletes related relations/source pointers/context-pack links,
-                and removes its Markdown file from the vault.
-              </p>
-              <div class="action-row">
-                <button class="button subtle" type="button" @click="deleteConfirmOpen = false">Cancel</button>
-                <button class="button danger" type="button" :disabled="deleteLoading" @click="deleteCurrentFragment">
-                  {{ deleteLoading ? "Deleting..." : "Delete Permanently" }}
-                </button>
-              </div>
-            </div>
-          </Transition>
         </section>
       </aside>
     </div>
+
+    <Transition name="modal-fade">
+      <section v-if="deleteConfirmOpen" class="modal-backdrop" @click.self="deleteConfirmOpen = false">
+        <div class="modal-panel danger-panel">
+          <header class="section-header">
+            <div class="warning-heading">
+              <AlertTriangle :size="18" aria-hidden="true" />
+              <h2>Permanent Delete</h2>
+            </div>
+            <button class="icon-button" type="button" aria-label="Close delete confirmation" @click="deleteConfirmOpen = false">
+              <X :size="16" aria-hidden="true" />
+            </button>
+          </header>
+          <p>
+            This removes the fragment from SQLite, deletes related relations/source pointers/context-pack links,
+            and removes its Markdown file from the vault.
+          </p>
+          <div class="action-row">
+            <button class="button subtle" type="button" @click="deleteConfirmOpen = false">Cancel</button>
+            <button class="button danger" type="button" :disabled="deleteLoading" @click="deleteCurrentFragment">
+              <Trash2 :size="16" aria-hidden="true" />
+              {{ deleteLoading ? "Deleting..." : "Delete Permanently" }}
+            </button>
+          </div>
+        </div>
+      </section>
+    </Transition>
   </section>
 </template>
 
@@ -148,6 +157,7 @@ import FragmentEditor from "../components/FragmentEditor.vue";
 import MarkdownLatexRenderer from "../components/MarkdownLatexRenderer.vue";
 import RelationList from "../components/RelationList.vue";
 import SourcePointerView from "../components/SourcePointerView.vue";
+import StatusBadge from "../components/StatusBadge.vue";
 import type { Fragment, FragmentVersion, Relation, SourcePointer, Topic } from "../types";
 
 const props = defineProps<{ id: string }>();

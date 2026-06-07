@@ -14,32 +14,45 @@
     <div class="fragment-browser">
       <main class="fragment-results">
         <section class="batch-toolbar" :class="{ active: selectedIds.length }">
-          <div>
-            <strong>{{ selectedIds.length }} selected</strong>
-            <span>{{ visibleFragments.length }} visible</span>
+          <div class="batch-toolbar__summary">
+            <span class="panel-icon">
+              <MousePointer2 :size="16" aria-hidden="true" />
+            </span>
+            <div>
+              <strong>{{ selectedIds.length }} selected</strong>
+              <span>{{ visibleFragments.length }} visible in current view</span>
+            </div>
           </div>
           <div class="toolbar">
             <button class="button subtle" type="button" :disabled="!visibleFragments.length" @click="selectVisible">
+              <CheckSquare :size="16" aria-hidden="true" />
               Select Visible
             </button>
             <button class="button subtle" type="button" :disabled="!selectedIds.length" @click="clearSelection">
+              <XCircle :size="16" aria-hidden="true" />
               Clear
             </button>
-            <select v-model="bulkTopicTarget" :disabled="!selectedIds.length || bulkBusy">
-              <option value="">Move to topic...</option>
-              <option :value="unsortedTopicFilter">Unsorted</option>
-              <option v-for="topic in topics" :key="topic.id" :value="topic.id">{{ topic.title }}</option>
-            </select>
-            <button class="button subtle" type="button" :disabled="!canApplyBulkTopic || bulkBusy" @click="applyBulkTopic">
-              Move
-            </button>
-            <select v-model="bulkStatusTarget" :disabled="!selectedIds.length || bulkBusy">
-              <option value="">Set status...</option>
-              <option v-for="status in fragmentStatuses" :key="status" :value="status">{{ status }}</option>
-            </select>
-            <button class="button subtle" type="button" :disabled="!canApplyBulkStatus || bulkBusy" @click="applyBulkStatus">
-              Update
-            </button>
+            <div class="bulk-control-group">
+              <select v-model="bulkTopicTarget" :disabled="!selectedIds.length || bulkBusy" aria-label="Bulk topic target">
+                <option value="">Move to topic...</option>
+                <option :value="unsortedTopicFilter">Unsorted</option>
+                <option v-for="topic in topics" :key="topic.id" :value="topic.id">{{ topic.title }}</option>
+              </select>
+              <button class="button subtle" type="button" :disabled="!canApplyBulkTopic || bulkBusy" @click="applyBulkTopic">
+                <MoveRight :size="16" aria-hidden="true" />
+                Move
+              </button>
+            </div>
+            <div class="bulk-control-group">
+              <select v-model="bulkStatusTarget" :disabled="!selectedIds.length || bulkBusy" aria-label="Bulk status target">
+                <option value="">Set status...</option>
+                <option v-for="status in fragmentStatuses" :key="status" :value="status">{{ status }}</option>
+              </select>
+              <button class="button subtle" type="button" :disabled="!canApplyBulkStatus || bulkBusy" @click="applyBulkStatus">
+                <RefreshCw :size="16" aria-hidden="true" />
+                Update
+              </button>
+            </div>
             <button class="button danger" type="button" :disabled="!selectedIds.length || bulkBusy" @click="deleteConfirmOpen = true">
               <Trash2 :size="16" aria-hidden="true" />
               Delete
@@ -67,7 +80,7 @@
           <p v-if="batchError" class="error-text">{{ batchError }}</p>
         </section>
 
-        <section class="status-filter-row" aria-label="Status filters">
+        <section class="status-filter-row glass-panel" aria-label="Status filters">
           <button
             class="filter-chip"
             :class="{ active: filters.status === '' }"
@@ -90,52 +103,83 @@
           </button>
         </section>
 
-        <section class="filter-bar">
-          <label>
-            Search
-            <input v-model="filters.search" @input="load" />
-          </label>
-          <label>
-            Type
-            <select v-model="filters.type" @change="load">
-              <option value="">Any</option>
-              <option v-for="type in fragmentTypes" :key="type" :value="type">{{ type }}</option>
-            </select>
-          </label>
-          <label>
-            Status
-            <select v-model="filters.status">
-              <option value="">Any</option>
-              <option v-for="status in fragmentStatuses" :key="status" :value="status">{{ status }}</option>
-            </select>
-          </label>
-          <label>
-            Origin
-            <select v-model="filters.origin_classification" @change="load">
-              <option value="">Any</option>
-              <option value="user_original">user_original</option>
-              <option value="assistant_generated">assistant_generated</option>
-              <option value="external_source">external_source</option>
-              <option value="mixed">mixed</option>
-              <option value="unknown">unknown</option>
-            </select>
-          </label>
-          <label>
-            Exactness
-            <select v-model="filters.exactness" @change="load">
-              <option value="">Any</option>
-              <option value="quote">quote</option>
-              <option value="close_paraphrase">close_paraphrase</option>
-              <option value="paraphrase">paraphrase</option>
-              <option value="interpretation">interpretation</option>
-              <option value="reconstruction">reconstruction</option>
-              <option value="original">original</option>
-            </select>
-          </label>
-          <label>
-            Source citekey
-            <input v-model="filters.source_citekey" @input="load" />
-          </label>
+        <section class="fragment-filter-shell">
+          <header class="filter-bar-header">
+            <div>
+              <h2>
+                <ListFilter :size="17" aria-hidden="true" />
+                Filters
+              </h2>
+              <p>{{ filterSummary }}</p>
+            </div>
+            <div class="toolbar">
+              <button class="button subtle" type="button" :disabled="!activeFilterCount" @click="clearFilters">
+                <XCircle :size="16" aria-hidden="true" />
+                Reset
+              </button>
+              <button class="button subtle" type="button" @click="filtersOpen = !filtersOpen">
+                <ChevronDown :class="{ open: filtersOpen }" :size="16" aria-hidden="true" />
+                {{ filtersOpen ? "Hide Filters" : "Show Filters" }}
+              </button>
+            </div>
+          </header>
+          <Transition name="collapse">
+            <div v-if="filtersOpen" class="filter-bar fragment-filter-panel">
+              <label class="filter-field filter-field--search">
+                <span class="label-title">
+                  <Search :size="14" aria-hidden="true" />
+                  Search
+                </span>
+                <input v-model="filters.search" placeholder="Title, body, theorem, notation..." @input="load" />
+              </label>
+              <label class="filter-field">
+                <span class="label-title">
+                  <FileText :size="14" aria-hidden="true" />
+                  Type
+                </span>
+                <select v-model="filters.type" @change="load">
+                  <option value="">Any</option>
+                  <option v-for="type in fragmentTypes" :key="type" :value="type">{{ type }}</option>
+                </select>
+              </label>
+              <label class="filter-field">
+                <span class="label-title">
+                  <Fingerprint :size="14" aria-hidden="true" />
+                  Origin
+                </span>
+                <select v-model="filters.origin_classification" @change="load">
+                  <option value="">Any</option>
+                  <option value="user_original">user_original</option>
+                  <option value="assistant_generated">assistant_generated</option>
+                  <option value="external_source">external_source</option>
+                  <option value="mixed">mixed</option>
+                  <option value="unknown">unknown</option>
+                </select>
+              </label>
+              <label class="filter-field">
+                <span class="label-title">
+                  <Quote :size="14" aria-hidden="true" />
+                  Exactness
+                </span>
+                <select v-model="filters.exactness" @change="load">
+                  <option value="">Any</option>
+                  <option value="quote">quote</option>
+                  <option value="close_paraphrase">close_paraphrase</option>
+                  <option value="paraphrase">paraphrase</option>
+                  <option value="interpretation">interpretation</option>
+                  <option value="reconstruction">reconstruction</option>
+                  <option value="original">original</option>
+                </select>
+              </label>
+              <label class="filter-field filter-field--source">
+                <span class="label-title">
+                  <BookKey :size="14" aria-hidden="true" />
+                  Source citekey
+                </span>
+                <input v-model="filters.source_citekey" placeholder="e.g. johnstone1982" @input="load" />
+              </label>
+            </div>
+          </Transition>
         </section>
 
         <p v-if="store.error" class="error-text">{{ store.error }}</p>
@@ -159,7 +203,10 @@
       <aside class="topic-filter-panel">
         <header class="topic-filter-header">
           <div>
-            <h2>Topics</h2>
+            <h2>
+              <Network :size="17" aria-hidden="true" />
+              Topics
+            </h2>
             <p>{{ visibleFragments.length }} of {{ store.fragments.length }} shown</p>
           </div>
           <RouterLink class="text-button" to="/topics">
@@ -173,7 +220,7 @@
             type="button"
             @click="setTopicFilter('')"
           >
-            <span>All Topics</span>
+            <span><Layers :size="14" aria-hidden="true" /> All Topics</span>
             <strong>{{ store.fragments.length }}</strong>
           </button>
           <button
@@ -185,7 +232,7 @@
             @drop="dropOnTopic(unsortedTopicFilter)"
             @click="setTopicFilter(unsortedTopicFilter)"
           >
-            <span>Unsorted</span>
+            <span><Inbox :size="14" aria-hidden="true" /> Unsorted</span>
             <strong>{{ unsortedCount }}</strong>
           </button>
           <button
@@ -199,7 +246,7 @@
             @drop="dropOnTopic(topic.id)"
             @click="setTopicFilter(topic.id)"
           >
-            <span>{{ topic.title }}</span>
+            <span><Network :size="14" aria-hidden="true" /> {{ topic.title }}</span>
             <strong>{{ countForTopic(topic.id) }}</strong>
           </button>
         </div>
@@ -211,7 +258,26 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { AlertTriangle, Plus, Trash2 } from "lucide-vue-next";
+import {
+  AlertTriangle,
+  BookKey,
+  CheckSquare,
+  ChevronDown,
+  FileText,
+  Fingerprint,
+  Inbox,
+  Layers,
+  ListFilter,
+  MousePointer2,
+  MoveRight,
+  Network,
+  Plus,
+  Quote,
+  RefreshCw,
+  Search,
+  Trash2,
+  XCircle,
+} from "lucide-vue-next";
 import FragmentCard from "../components/FragmentCard.vue";
 import { api } from "../api/client";
 import { useFragmentsStore } from "../stores/fragments";
@@ -229,6 +295,7 @@ const bulkTopicTarget = ref("");
 const bulkStatusTarget = ref("");
 const bulkBusy = ref(false);
 const deleteConfirmOpen = ref(false);
+const filtersOpen = ref(true);
 const batchMessage = ref("");
 const batchError = ref("");
 const dragOverTopic = ref<string | null>(null);
@@ -256,6 +323,28 @@ const unsortedCount = computed(() => store.fragments.filter((fragment) => !fragm
 const selectedSet = computed(() => new Set(selectedIds.value));
 const canApplyBulkTopic = computed(() => selectedIds.value.length > 0 && bulkTopicTarget.value !== "");
 const canApplyBulkStatus = computed(() => selectedIds.value.length > 0 && bulkStatusTarget.value !== "");
+const activeFilterCount = computed(
+  () =>
+    [
+      filters.search,
+      filters.type,
+      filters.status,
+      filters.origin_classification,
+      filters.exactness,
+      filters.source_citekey,
+    ].filter(Boolean).length
+);
+const filterSummary = computed(() => {
+  if (!activeFilterCount.value) return "No metadata filters active";
+  const parts = [];
+  if (filters.search) parts.push(`search: ${filters.search}`);
+  if (filters.type) parts.push(`type: ${filters.type}`);
+  if (filters.origin_classification) parts.push(`origin: ${filters.origin_classification}`);
+  if (filters.exactness) parts.push(`exactness: ${filters.exactness}`);
+  if (filters.source_citekey) parts.push(`citekey: ${filters.source_citekey}`);
+  if (filters.status) parts.push(`status: ${filters.status}`);
+  return parts.slice(0, 2).join(" / ") + (parts.length > 2 ? ` / +${parts.length - 2}` : "");
+});
 
 async function load() {
   await store.load({
@@ -278,6 +367,16 @@ function setTopicFilter(value: string) {
 
 function setStatusFilter(value: "" | FragmentStatus) {
   filters.status = value;
+}
+
+function clearFilters() {
+  filters.search = "";
+  filters.type = "";
+  filters.status = "";
+  filters.origin_classification = "";
+  filters.exactness = "";
+  filters.source_citekey = "";
+  void load();
 }
 
 function setSelected(fragmentId: string, selected: boolean) {

@@ -8,6 +8,33 @@
     </header>
 
     <section class="plain-section settings-panel">
+      <h2>Appearance</h2>
+      <div class="segmented-control" role="group" aria-label="Theme mode">
+        <button
+          class="button subtle"
+          :class="{ active: theme.mode === 'light' }"
+          type="button"
+          @click="theme.setMode('light')"
+        >
+          <Sun :size="16" aria-hidden="true" />
+          Light
+        </button>
+        <button
+          class="button subtle"
+          :class="{ active: theme.mode === 'dark' }"
+          type="button"
+          @click="theme.setMode('dark')"
+        >
+          <Moon :size="16" aria-hidden="true" />
+          Dark
+        </button>
+      </div>
+      <p class="muted">
+        Light mode is the primary design; dark mode uses the same research-console tokens for late sessions.
+      </p>
+    </section>
+
+    <section class="plain-section settings-panel">
       <h2>AI Operations</h2>
       <label>
         Default timeout
@@ -39,10 +66,12 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { Save } from "lucide-vue-next";
+import { Moon, Save, Sun } from "lucide-vue-next";
 import { useSettingsStore } from "../stores/settings";
+import { useThemeStore } from "../stores/theme";
 
 const settings = useSettingsStore();
+const theme = useThemeStore();
 const timeoutSeconds = ref(settings.settings.aiTimeoutSeconds);
 const message = ref("");
 

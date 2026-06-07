@@ -15,7 +15,7 @@
           <span class="status" :data-status="fragment.status">{{ fragment.status }}</span>
         </div>
         <h3>{{ fragment.title }}</h3>
-        <p>{{ fragment.body }}</p>
+        <MarkdownLatexRenderer class="card-tex-preview" :body="fragment.body" />
         <footer class="action-row">
           <RouterLink class="button subtle" :to="`/fragments/${fragment.id}`">Inspect</RouterLink>
           <button class="button primary" type="button" @click="restore(fragment)">
@@ -31,6 +31,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { api } from "../api/client";
+import MarkdownLatexRenderer from "../components/MarkdownLatexRenderer.vue";
 import { useFragmentsStore } from "../stores/fragments";
 import type { Fragment } from "../types";
 
@@ -56,4 +57,3 @@ async function restore(fragment: Fragment) {
 
 onMounted(load);
 </script>
-
