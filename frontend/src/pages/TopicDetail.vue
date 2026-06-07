@@ -628,6 +628,7 @@ const contextExportedMarkdown = ref("");
 const topicContextPacks = ref<ContextPack[]>([]);
 const currentContextJob = ref<ContextPackSuggestJob | null>(null);
 const appliedContextJobId = ref("");
+const discardedContextSuggestionIds = ref<Set<string>>(new Set(loadDiscardedContextSuggestionIds(props.id)));
 const packEditingId = ref("");
 const packTitleDraft = ref("");
 const packToDelete = ref<ContextPack | null>(null);
@@ -1158,6 +1159,9 @@ function selectAllContextCandidates() {
 
 function discardContextSuggestion() {
   clearContextPollTimer();
+  markContextSuggestionDiscarded(currentContextJob.value?.job_id);
+  markContextSuggestionDiscarded(appliedContextJobId.value);
+  markContextSuggestionDiscarded(findRestorableContextSuggestionRun()?.id);
   selectedContextItems.value = [];
   contextWarnings.value = [];
   missingContextQuestions.value = [];
@@ -1306,15 +1310,48 @@ function syncGlobalContextLogs(job: ContextPackSuggestJob, open = false) {
   });
 }
 
-function restoreContextSuggestionFromGlobalRun() {
-  const run = aiLogs.runs.find(
+function discardedContextSuggestionKey(topicId: string) {
+  return `lemmaforge.discardedContextSuggestions.${topicId}`;
+}
+
+function loadDiscardedContextSuggestionIds(topicId: string) {
+  try {
+    const raw = localStorage.getItem(discardedContextSuggestionKey(topicId));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistDiscardedContextSuggestionIds() {
+  const values = Array.from(discardedContextSuggestionIds.value).slice(-40);
+  discardedContextSuggestionIds.value = new Set(values);
+  localStorage.setItem(discardedContextSuggestionKey(props.id), JSON.stringify(values));
+}
+
+function markContextSuggestionDiscarded(jobId?: string | null) {
+  if (!jobId) return;
+  if (discardedContextSuggestionIds.value.has(jobId)) return;
+  discardedContextSuggestionIds.value = new Set([...discardedContextSuggestionIds.value, jobId]);
+  persistDiscardedContextSuggestionIds();
+}
+
+function findRestorableContextSuggestionRun() {
+  return aiLogs.runs.find(
     (item) =>
       item.kind === "context_suggest" &&
       item.context?.topic_id === props.id &&
       item.status === "succeeded" &&
       item.result &&
-      item.id !== appliedContextJobId.value
+      item.id !== appliedContextJobId.value &&
+      !discardedContextSuggestionIds.value.has(item.id)
   );
+}
+
+function restoreContextSuggestionFromGlobalRun() {
+  const run = findRestorableContextSuggestionRun();
   if (!run) return;
   const result = run.result as ContextPackSuggestResult;
   if (!result.suggestion) return;
