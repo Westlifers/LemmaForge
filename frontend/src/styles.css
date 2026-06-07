@@ -552,17 +552,21 @@ button {
 
 .status-filter-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px;
-  border-radius: var(--radius);
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 8px;
+  border-radius: 12px;
+  scrollbar-width: thin;
 }
 
 .filter-chip {
-  min-height: 34px;
-  padding: 5px 10px;
-  font-size: 13px;
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: 4px 8px;
+  font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .fragment-card {
@@ -780,17 +784,21 @@ button {
 .fragment-filter-shell {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
+  gap: 10px;
+  padding: 10px 12px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--glass);
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.44)),
+    var(--glass);
   box-shadow: var(--shadow-soft);
   backdrop-filter: var(--blur);
 }
 
 .fragment-filter-panel {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: minmax(260px, 1.55fr) repeat(3, minmax(132px, 0.74fr)) minmax(180px, 0.95fr);
+  align-items: end;
+  gap: 8px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -799,10 +807,10 @@ button {
 
 .filter-bar-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 2px;
+  min-height: 36px;
 }
 
 .filter-bar-header h2 {
@@ -810,31 +818,36 @@ button {
   align-items: center;
   gap: 7px;
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
+  line-height: 1.1;
 }
 
 .filter-bar-header p {
-  margin: 3px 0 0;
+  max-width: 620px;
+  margin: 2px 0 0;
+  overflow: hidden;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fragment-filter-panel label {
-  grid-column: span 2;
-  gap: 7px;
+  gap: 5px;
   min-width: 0;
-  padding: 10px;
+  min-height: 54px;
+  padding: 7px 9px;
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--surface-alt);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.52);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
 }
 
-.fragment-filter-panel label:first-of-type {
-  grid-column: span 3;
-}
-
-.fragment-filter-panel label:last-of-type {
-  grid-column: span 2;
+.fragment-filter-panel label:focus-within {
+  border-color: var(--accent);
+  background: var(--surface-solid);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .label-title {
@@ -842,16 +855,31 @@ button {
   align-items: center;
   gap: 6px;
   color: var(--text-muted);
-  font-size: 12px;
-  letter-spacing: 0.02em;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.045em;
   text-transform: uppercase;
 }
 
 .fragment-filter-panel input,
 .fragment-filter-panel select {
-  min-height: 36px;
+  min-height: 26px;
+  padding: 0;
   border-color: transparent;
-  background: var(--surface-solid);
+  background: transparent;
+  box-shadow: none;
+  font-weight: 650;
+}
+
+.fragment-filter-panel input:focus,
+.fragment-filter-panel select:focus {
+  border-color: transparent;
+  outline: 0;
+}
+
+.fragment-filter-panel input::placeholder {
+  color: color-mix(in srgb, var(--text-muted) 70%, transparent);
+  font-weight: 500;
 }
 
 .button svg.open,
@@ -1917,15 +1945,15 @@ textarea {
 .danger-panel {
   width: 100%;
   padding: 12px;
-  border: 1px solid #e6a1a4;
+  border: 1px solid rgba(180, 58, 72, 0.34);
   border-radius: 8px;
-  background: #fff8f8;
+  background: var(--danger-soft);
 }
 
 .danger-panel p,
 .delete-confirmation p {
   margin: 0;
-  color: #6f3a3c;
+  color: var(--danger);
 }
 
 .delete-confirmation {
@@ -1934,9 +1962,9 @@ textarea {
   gap: 10px;
   width: 100%;
   padding: 12px;
-  border: 1px solid #e6a1a4;
+  border: 1px solid rgba(180, 58, 72, 0.34);
   border-radius: 8px;
-  background: #fff0f1;
+  background: var(--danger-soft);
 }
 
 .warning-heading {
@@ -2018,8 +2046,8 @@ textarea {
   flex-direction: column;
   gap: 6px;
   padding: 12px;
-  border-left: 3px solid #c98519;
-  background: #fff8e8;
+  border-left: 3px solid var(--warning);
+  background: var(--warning-soft);
   color: var(--warning);
 }
 
@@ -2138,7 +2166,7 @@ textarea {
   bottom: 0;
   left: 0;
   height: 28px;
-  background: linear-gradient(transparent, var(--glass));
+  background: linear-gradient(transparent, var(--surface));
   content: "";
   pointer-events: none;
 }
@@ -2353,6 +2381,22 @@ textarea:focus {
   backdrop-filter: var(--blur);
 }
 
+.glass-panel--muted {
+  background: var(--surface-alt);
+}
+
+.glass-panel--danger {
+  border-color: rgba(180, 58, 72, 0.34);
+  background: var(--danger-soft);
+}
+
+.fragment-filter-shell .fragment-filter-panel {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
 .plain-section {
   padding: 16px;
   border-radius: var(--radius);
@@ -2361,6 +2405,30 @@ textarea:focus {
 .page > .plain-section,
 .split > .plain-section {
   background: var(--glass);
+}
+
+.source-summary-panel details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.source-summary-panel summary {
+  cursor: pointer;
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.inline-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.compact-json {
+  min-height: 120px;
+  max-height: 320px;
 }
 
 .page-header {
@@ -2860,13 +2928,29 @@ label,
   }
 
   .fragment-filter-panel {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(240px, 1.2fr) repeat(2, minmax(140px, 1fr));
   }
 
-  .fragment-filter-panel label,
-  .fragment-filter-panel label:first-of-type,
-  .fragment-filter-panel label:last-of-type {
+  .filter-field--search {
+    grid-column: span 2;
+  }
+
+  .filter-field--source {
     grid-column: span 1;
+  }
+
+  .topic-graph-toolbar {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: auto;
+    margin: 12px;
+    pointer-events: auto;
+  }
+
+  .topic-flow {
+    height: 640px;
+    min-height: 520px;
   }
 }
 
@@ -2900,6 +2984,20 @@ label,
   .bulk-control-group {
     flex: 1 1 100%;
   }
+
+  .topic-graph-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .topic-graph-toolbar > div {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .context-drawer {
+    width: 100%;
+  }
 }
 
 @media (max-width: 640px) {
@@ -2928,7 +3026,8 @@ label,
     grid-template-columns: 1fr;
   }
 
-  .fragment-filter-panel label {
+  .filter-field--search,
+  .filter-field--source {
     grid-column: span 1;
   }
 
@@ -2939,5 +3038,90 @@ label,
   .ai-job-card .status {
     grid-column: 2;
     justify-self: start;
+  }
+
+  .context-action-row {
+    grid-template-columns: 1fr;
+  }
+
+  .context-action-row .button.danger {
+    grid-column: auto;
+  }
+
+  .relation-row,
+  .compact-edit {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Final polish overrides for token consistency */
+
+.relation-form,
+.topic-fragment-list,
+.topic-fragment-item,
+.proposal-row,
+.ai-log-run-list button,
+.context-selection-item,
+.batch-select-control,
+.tabs button,
+.settings-panel,
+.metadata-json,
+.markdown-preview {
+  background: var(--surface-solid);
+  color: var(--text);
+}
+
+.topic-fragment-item:hover,
+.body-preview-button:hover .markdown-body,
+.ai-log-run-list button.active,
+.proposal-row.applied,
+.selectable-fragment-card.saved,
+.success-panel {
+  background: var(--success-soft);
+}
+
+.selectable-fragment-card.unselected {
+  background: var(--surface-alt);
+}
+
+.dirty-pill,
+.button.dirty {
+  border-color: rgba(157, 101, 22, 0.42);
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.ai-toast {
+  border-color: rgba(33, 132, 85, 0.34);
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.tabs {
+  border-color: var(--line);
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+}
+
+.tabs button {
+  border-color: var(--line);
+}
+
+.compact-list li:last-child,
+.check-row:last-child {
+  border-bottom: 0;
+}
+
+:root[data-theme="dark"] .card-tex-preview.markdown-body::after {
+  background: linear-gradient(transparent, var(--surface));
+}
+
+@media (max-width: 720px) {
+  .inline-search-row {
+    grid-template-columns: 1fr;
+  }
+
+  .source-summary-panel .metadata-strip {
+    align-items: flex-start;
   }
 }

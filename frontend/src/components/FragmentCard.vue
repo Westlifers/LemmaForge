@@ -14,10 +14,7 @@
           <FileText :size="13" aria-hidden="true" />
           {{ fragment.type }}
         </span>
-        <span class="status" :data-status="fragment.status">
-          <CircleDot :size="13" aria-hidden="true" />
-          {{ fragment.status }}
-        </span>
+        <StatusBadge :status="fragment.status" />
       </div>
     </div>
     <RouterLink class="fragment-card__link" :to="`/fragments/${fragment.id}`">
@@ -48,8 +45,9 @@
 <script setup lang="ts">
 import type { Fragment } from "../types";
 import { computed } from "vue";
-import { CircleDot, FileText, Fingerprint, Network, Quote, Sparkles } from "lucide-vue-next";
+import { FileText, Fingerprint, Network, Quote, Sparkles } from "lucide-vue-next";
 import MarkdownLatexRenderer from "./MarkdownLatexRenderer.vue";
+import StatusBadge from "./StatusBadge.vue";
 
 const props = withDefaults(
   defineProps<{ fragment: Fragment; topicTitle?: string; selectable?: boolean; selected?: boolean }>(),

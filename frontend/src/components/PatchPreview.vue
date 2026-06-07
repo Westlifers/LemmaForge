@@ -19,7 +19,7 @@
       <article v-for="fragment in preview.patch.fragments" :key="fragment.local_id" class="fragment-card">
         <div class="fragment-card__header">
           <span class="badge">{{ fragment.type }}</span>
-          <span class="status" :data-status="fragment.status">{{ fragment.status }}</span>
+          <StatusBadge :status="fragment.status" />
         </div>
         <h3>{{ fragment.title }}</h3>
         <MarkdownLatexRenderer class="card-tex-preview" :body="fragment.body" />
@@ -57,6 +57,7 @@
 <script setup lang="ts">
 import { Check } from "lucide-vue-next";
 import MarkdownLatexRenderer from "./MarkdownLatexRenderer.vue";
+import StatusBadge from "./StatusBadge.vue";
 import type { ImportPreview } from "../types";
 
 defineProps<{ preview: ImportPreview }>();

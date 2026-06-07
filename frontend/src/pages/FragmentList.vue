@@ -110,7 +110,7 @@
                 <ListFilter :size="17" aria-hidden="true" />
                 Filters
               </h2>
-              <p>{{ activeFilterCount }} active filter{{ activeFilterCount === 1 ? "" : "s" }}</p>
+              <p>{{ filterSummary }}</p>
             </div>
             <div class="toolbar">
               <button class="button subtle" type="button" :disabled="!activeFilterCount" @click="clearFilters">
@@ -125,14 +125,14 @@
           </header>
           <Transition name="collapse">
             <div v-if="filtersOpen" class="filter-bar fragment-filter-panel">
-              <label>
+              <label class="filter-field filter-field--search">
                 <span class="label-title">
                   <Search :size="14" aria-hidden="true" />
                   Search
                 </span>
-                <input v-model="filters.search" @input="load" />
+                <input v-model="filters.search" placeholder="Title, body, theorem, notation..." @input="load" />
               </label>
-              <label>
+              <label class="filter-field">
                 <span class="label-title">
                   <FileText :size="14" aria-hidden="true" />
                   Type
@@ -142,7 +142,7 @@
                   <option v-for="type in fragmentTypes" :key="type" :value="type">{{ type }}</option>
                 </select>
               </label>
-              <label>
+              <label class="filter-field">
                 <span class="label-title">
                   <Fingerprint :size="14" aria-hidden="true" />
                   Origin
@@ -156,7 +156,7 @@
                   <option value="unknown">unknown</option>
                 </select>
               </label>
-              <label>
+              <label class="filter-field">
                 <span class="label-title">
                   <Quote :size="14" aria-hidden="true" />
                   Exactness
@@ -171,12 +171,12 @@
                   <option value="original">original</option>
                 </select>
               </label>
-              <label>
+              <label class="filter-field filter-field--source">
                 <span class="label-title">
                   <BookKey :size="14" aria-hidden="true" />
                   Source citekey
                 </span>
-                <input v-model="filters.source_citekey" @input="load" />
+                <input v-model="filters.source_citekey" placeholder="e.g. johnstone1982" @input="load" />
               </label>
             </div>
           </Transition>
@@ -334,6 +334,17 @@ const activeFilterCount = computed(
       filters.source_citekey,
     ].filter(Boolean).length
 );
+const filterSummary = computed(() => {
+  if (!activeFilterCount.value) return "No metadata filters active";
+  const parts = [];
+  if (filters.search) parts.push(`search: ${filters.search}`);
+  if (filters.type) parts.push(`type: ${filters.type}`);
+  if (filters.origin_classification) parts.push(`origin: ${filters.origin_classification}`);
+  if (filters.exactness) parts.push(`exactness: ${filters.exactness}`);
+  if (filters.source_citekey) parts.push(`citekey: ${filters.source_citekey}`);
+  if (filters.status) parts.push(`status: ${filters.status}`);
+  return parts.slice(0, 2).join(" / ") + (parts.length > 2 ? ` / +${parts.length - 2}` : "");
+});
 
 async function load() {
   await store.load({

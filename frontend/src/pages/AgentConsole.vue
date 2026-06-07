@@ -11,14 +11,23 @@
       </button>
     </header>
     <section class="plain-section">
-      <pre class="metadata-json">{{ status }}</pre>
+      <header class="section-header">
+        <div>
+          <h2>Agent Status</h2>
+          <p>Local backend agent capability snapshot</p>
+        </div>
+        <span class="panel-icon">
+          <Terminal :size="17" aria-hidden="true" />
+        </span>
+      </header>
+      <pre class="metadata-json compact-json">{{ status }}</pre>
     </section>
   </section>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { RefreshCw } from "lucide-vue-next";
+import { RefreshCw, Terminal } from "lucide-vue-next";
 import { api } from "../api/client";
 
 const status = ref("");
@@ -29,4 +38,3 @@ async function load() {
 
 onMounted(load);
 </script>
-

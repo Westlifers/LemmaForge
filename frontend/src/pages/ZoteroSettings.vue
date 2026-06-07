@@ -5,29 +5,48 @@
         <h1>Zotero</h1>
         <p>Local references.bib status and citekey search</p>
       </div>
-      <button class="button subtle" type="button" @click="loadStatus">
-        <RefreshCw :size="16" aria-hidden="true" />
-        Refresh
-      </button>
-      <button class="button primary" type="button" @click="sync">
-        <RefreshCw :size="16" aria-hidden="true" />
-        Sync
-      </button>
+      <div class="toolbar">
+        <button class="button subtle" type="button" @click="loadStatus">
+          <RefreshCw :size="16" aria-hidden="true" />
+          Refresh
+        </button>
+        <button class="button primary" type="button" @click="sync">
+          <RefreshCw :size="16" aria-hidden="true" />
+          Sync
+        </button>
+      </div>
     </header>
 
     <section class="plain-section">
-      <pre class="metadata-json">{{ status }}</pre>
+      <header class="section-header">
+        <div>
+          <h2>Reference Status</h2>
+          <p>Better BibTeX file and local source index</p>
+        </div>
+        <span class="panel-icon">
+          <BookOpen :size="17" aria-hidden="true" />
+        </span>
+      </header>
+      <pre class="metadata-json compact-json">{{ status }}</pre>
     </section>
 
     <section class="plain-section editor">
-      <label>
-        Search references
-        <input v-model="query" @keyup.enter="search" />
-      </label>
-      <button class="button primary" type="button" @click="search">
-        <Search :size="16" aria-hidden="true" />
-        Search
-      </button>
+      <header class="section-header">
+        <div>
+          <h2>Citekey Search</h2>
+          <p>Search imported Better BibTeX entries.</p>
+        </div>
+      </header>
+      <div class="inline-search-row">
+        <label>
+          Search references
+          <input v-model="query" @keyup.enter="search" />
+        </label>
+        <button class="button primary" type="button" @click="search">
+          <Search :size="16" aria-hidden="true" />
+          Search
+        </button>
+      </div>
       <ul class="compact-list">
         <li v-for="result in results" :key="String(result.citekey)">
           <code>{{ result.citekey }}</code>
@@ -37,11 +56,18 @@
     </section>
 
     <section class="plain-section">
-      <h2>Source Records</h2>
-      <label>
-        Search sources
-        <input v-model="sourceSearch" @input="loadSources" />
-      </label>
+      <header class="section-header">
+        <div>
+          <h2>Source Records</h2>
+          <p>{{ sources.length }} local source record{{ sources.length === 1 ? "" : "s" }}</p>
+        </div>
+      </header>
+      <div class="inline-search-row">
+        <label>
+          Search sources
+          <input v-model="sourceSearch" @input="loadSources" />
+        </label>
+      </div>
       <ul class="compact-list">
         <li v-for="source in sources" :key="source.id">
           <RouterLink class="text-button" :to="`/sources/${source.id}`">{{ source.title }}</RouterLink>
@@ -54,7 +80,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { RefreshCw, Search } from "lucide-vue-next";
+import { BookOpen, RefreshCw, Search } from "lucide-vue-next";
 import { api } from "../api/client";
 import type { Source } from "../types";
 
