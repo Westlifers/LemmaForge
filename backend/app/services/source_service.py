@@ -57,6 +57,12 @@ def get_source_by_citekey(db: Session, citekey: str) -> Source | None:
     return db.execute(select(Source).where(Source.citekey == citekey)).scalar_one_or_none()
 
 
+def get_source_by_zotero_item_key(db: Session, zotero_item_key: str) -> Source | None:
+    return db.execute(
+        select(Source).where(Source.zotero_item_key == zotero_item_key)
+    ).scalar_one_or_none()
+
+
 def create_source(db: Session, payload: SourceCreate, *, commit: bool = True) -> Source:
     base = payload.citekey or payload.title
     source = Source(
@@ -150,6 +156,46 @@ def sync_references_to_sources(db: Session, bib_text: str) -> list[Source]:
     return synced
 
 
+def sync_zotero_items_to_sources(db: Session, items: list[dict]) -> list[Source]:
+    synced: list[Source] = []
+    for item in items:
+        payload = source_payload_from_zotero_item(item)
+        zotero_item_key = payload.zotero_item_key
+        existing = get_source_by_zotero_item_key(db, zotero_item_key) if zotero_item_key else None
+        if existing is None and payload.citekey:
+            existing = get_source_by_citekey(db, payload.citekey)
+        if existing:
+            existing.source_type = payload.source_type
+            existing.title = payload.title
+            existing.authors = payload.authors
+            existing.year = payload.year
+            existing.citekey = payload.citekey
+            existing.zotero_item_key = payload.zotero_item_key
+            existing.url = payload.url
+            index_source(db, existing)
+            synced.append(existing)
+        else:
+            synced.append(create_source(db, payload, commit=False))
+    db.commit()
+    return synced
+
+
+def source_payload_from_zotero_item(item: dict) -> SourceCreate:
+    data = item.get("data") or {}
+    title = data.get("title") or data.get("shortTitle") or data.get("citationKey") or data.get("key")
+    creators = data.get("creators") or []
+    authors = _authors_from_zotero_creators(creators)
+    return SourceCreate(
+        source_type=_source_type_from_zotero_item_type(data.get("itemType")),
+        title=title or "Untitled Zotero source",
+        authors=authors,
+        year=_year_from_zotero_date(data.get("date") or item.get("meta", {}).get("parsedDate")),
+        citekey=data.get("citationKey") or None,
+        zotero_item_key=data.get("key") or item.get("key"),
+        url=data.get("url") or None,
+    )
+
+
 def _parse_bib_entries(text: str) -> list[dict[str, str]]:
     entries: list[dict[str, str]] = []
     for match in re.finditer(r"@(?P<type>\w+)\s*\{\s*(?P<citekey>[^,\s]+)\s*,", text):
@@ -179,3 +225,48 @@ def _source_type_from_entry(entry_type: str | None) -> str:
     if entry_type in {"online", "misc", "webpage"}:
         return "webpage"
     return "paper"
+
+
+def _source_type_from_zotero_item_type(item_type: str | None) -> str:
+    if item_type in {"book", "bookSection"}:
+        return "book"
+    if item_type in {"webpage", "blogPost", "forumPost"}:
+        return "webpage"
+    if item_type in {"presentation", "document"}:
+        return "lecture_note"
+    if item_type in {"note"}:
+        return "personal_note"
+    if item_type in {
+        "journalArticle",
+        "preprint",
+        "conferencePaper",
+        "report",
+        "thesis",
+        "manuscript",
+    }:
+        return "paper"
+    return "unknown"
+
+
+def _authors_from_zotero_creators(creators: list[dict]) -> str | None:
+    names: list[str] = []
+    for creator in creators:
+        if creator.get("creatorType") not in {None, "author", "editor"}:
+            continue
+        name = creator.get("name")
+        if not name:
+            parts = [creator.get("firstName"), creator.get("lastName")]
+            name = " ".join(part for part in parts if part)
+        if name:
+            names.append(name)
+    return "; ".join(names) if names else None
+
+
+def _year_from_zotero_date(value: str | None) -> int | None:
+    if not value:
+        return None
+    match = re.search(r"\b(\d{4})\b", value)
+    if not match:
+        return None
+    year = int(match.group(1))
+    return year if 0 <= year <= 3000 else None

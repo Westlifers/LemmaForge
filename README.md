@@ -102,7 +102,7 @@ Raw TeX is stored unchanged in SQLite and the Markdown vault. Code fences and in
 
 ## Current Limits
 
-- Zotero support is local: Better BibTeX parsing, source sync, source search, and linked fragment browsing.
+- Zotero support is local-first: the web app reads Zotero through the official Local API on `127.0.0.1:23119`, syncs selected items into LemmaForge `Source` rows, and keeps Better BibTeX sync as a fallback path.
 - Import agents are not invoked from the frontend. The main frontend import flow creates direct draft fragments; `ResearchPatch` batches remain available through the backend and CLI.
 - The database is local SQLite. The Markdown vault is written for inspection and Git diffs, while SQLite remains the structured source of truth.
 - Duplicate handling is suggestion-only. The user must explicitly skip or link candidates before commit.

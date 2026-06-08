@@ -111,6 +111,73 @@ export interface Source {
   updated_at: string;
 }
 
+export interface ZoteroStatus {
+  configured: boolean;
+  running: boolean;
+  local_api_available: boolean;
+  base_url: string;
+  library_id: number | null;
+  library_name: string | null;
+  error: string | null;
+  references_bib: string;
+  references_exists: boolean;
+}
+
+export interface ZoteroCreator {
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  creatorType?: string;
+}
+
+export interface ZoteroAttachment {
+  key: string | null;
+  title: string | null;
+  content_type: string | null;
+  filename: string | null;
+  url: string | null;
+}
+
+export interface ZoteroItem {
+  key: string;
+  version: number | null;
+  item_type: string | null;
+  title: string;
+  creators: ZoteroCreator[];
+  creator_summary: string | null;
+  date: string | null;
+  year: number | null;
+  url: string | null;
+  doi: string | null;
+  abstract_note: string | null;
+  citation_key: string | null;
+  collections: string[];
+  tags: Array<{ tag?: string; type?: number }>;
+  attachment_count: number;
+  attachments: ZoteroAttachment[];
+  zotero_url: string | null;
+}
+
+export interface ZoteroSearchResult {
+  query: string;
+  available: boolean;
+  error: string | null;
+  results: ZoteroItem[];
+}
+
+export interface ZoteroItemResult {
+  available: boolean;
+  error: string | null;
+  item: ZoteroItem | null;
+}
+
+export interface ZoteroSyncResult {
+  available: boolean;
+  synced_count: number;
+  sources: Source[];
+  error: string | null;
+}
+
 export interface Topic {
   id: string;
   title: string;

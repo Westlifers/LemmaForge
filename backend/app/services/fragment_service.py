@@ -11,6 +11,8 @@ from app.schemas.fragment import FragmentCreate, FragmentUpdate, FragmentVersion
 from app.services.ids import fragment_id_base, short_uuid, slugify, unique_model_id
 from app.services.markdown_vault import delete_fragment_markdown, write_fragment_markdown
 from app.services.search_service import delete_fragment_index, fragment_search_ids, index_fragment
+from app.services.source_service import create_source_pointer, get_or_create_source_from_citekey
+from app.schemas.source import SourcePointerCreate
 
 
 def list_fragments(
@@ -86,6 +88,19 @@ def create_fragment(
     fragment.current_version_id = version.id
     db.flush()
     index_fragment(db, fragment)
+    if payload.source_citekey:
+        source = get_or_create_source_from_citekey(db, payload.source_citekey)
+        create_source_pointer(
+            db,
+            SourcePointerCreate(
+                fragment_id=fragment.id,
+                source_id=source.id,
+                locator=payload.source_locator,
+                exactness=payload.exactness,
+                note="Created from manual draft citation.",
+            ),
+            commit=False,
+        )
     if commit:
         db.commit()
         db.refresh(fragment)

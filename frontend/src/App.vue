@@ -81,6 +81,14 @@
           </span>
           <small>{{ storageDetailText }}</small>
         </article>
+        <article class="sidebar-status-card">
+          <header>
+            <BookOpen :size="17" aria-hidden="true" />
+            <strong>Zotero</strong>
+          </header>
+          <StatusIndicator :tone="zoteroStatusTone">{{ zoteroStatusText }}</StatusIndicator>
+          <small>{{ zoteroDetailText }}</small>
+        </article>
       </section>
     </aside>
 
@@ -151,7 +159,7 @@ import StatusIndicator from "./components/StatusIndicator.vue";
 import { api } from "./api/client";
 import { useAILogsStore } from "./stores/aiLogs";
 import { useThemeStore } from "./stores/theme";
-import type { AppHealth } from "./types";
+import type { AppHealth, ZoteroStatus } from "./types";
 import {
   ArchiveX,
   BookOpen,
@@ -180,6 +188,7 @@ const route = useRoute();
 const theme = useThemeStore();
 const aiLogs = useAILogsStore();
 const health = ref<AppHealth | null>(null);
+const zoteroStatus = ref<ZoteroStatus | null>(null);
 const routeTitles: Record<string, string> = {
   dashboard: "Research Dashboard",
   import: "Import Assistant",
@@ -219,12 +228,32 @@ const storageDetailText = computed(() => {
   if (!storage) return "Loading storage details";
   return `DB ${formatBytes(storage.database_bytes)} / Vault ${formatBytes(storage.vault_bytes)} / Free ${formatBytes(storage.disk_free_bytes)}`;
 });
+const zoteroStatusTone = computed(() => {
+  if (!zoteroStatus.value) return "muted";
+  return zoteroStatus.value.local_api_available ? "success" : "warning";
+});
+const zoteroStatusText = computed(() => {
+  if (!zoteroStatus.value) return "Checking...";
+  return zoteroStatus.value.local_api_available ? "Available" : "Unavailable";
+});
+const zoteroDetailText = computed(() => {
+  if (!zoteroStatus.value) return "Loading Zotero status";
+  if (zoteroStatus.value.local_api_available) {
+    return `${zoteroStatus.value.library_name || "Local library"} / ${zoteroStatus.value.base_url}`;
+  }
+  return zoteroStatus.value.error || zoteroStatus.value.base_url;
+});
 
 onMounted(async () => {
   try {
     health.value = await api.health();
   } catch {
     health.value = null;
+  }
+  try {
+    zoteroStatus.value = await api.zoteroStatus();
+  } catch {
+    zoteroStatus.value = null;
   }
 });
 

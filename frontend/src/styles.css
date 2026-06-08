@@ -2286,9 +2286,22 @@ textarea {
 .danger-panel {
   width: 100%;
   padding: 12px;
-  border: 1px solid rgba(180, 58, 72, 0.34);
+  border: 1px solid color-mix(in srgb, var(--danger) 48%, transparent);
   border-radius: 8px;
-  background: var(--danger-soft);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--danger) 13%, transparent), color-mix(in srgb, var(--danger) 5%, transparent)),
+    var(--danger-soft);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--danger) 13%, transparent);
+}
+
+.danger-panel .section-header,
+.danger-panel h2,
+.danger-panel h3 {
+  color: var(--danger);
+}
+
+.danger-panel .section-header {
+  border-bottom-color: color-mix(in srgb, var(--danger) 24%, transparent);
 }
 
 .danger-panel p,
@@ -2751,6 +2764,71 @@ textarea:focus {
   cursor: pointer;
   color: var(--accent-strong);
   font-weight: 700;
+}
+
+.source-live-panel {
+  margin-top: 14px;
+  background: color-mix(in srgb, var(--glass) 74%, transparent);
+}
+
+.chip-button {
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.panel-icon.healthy {
+  color: var(--accent-strong);
+  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
+  background: var(--accent-soft);
+}
+
+.zotero-item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.zotero-item-card {
+  min-height: 180px;
+}
+
+.zotero-picker-shell {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 76%, transparent);
+}
+
+.zotero-picker-shell summary {
+  cursor: pointer;
+  color: var(--accent-strong);
+  font-weight: 750;
+}
+
+.zotero-picker {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.zotero-picker-results li {
+  align-items: start;
+}
+
+.zotero-result-main {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  min-width: 0;
+  text-align: left;
+}
+
+.zotero-result-main span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .inline-search-row {

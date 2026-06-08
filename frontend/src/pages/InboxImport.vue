@@ -67,6 +67,10 @@
             <input v-model="aiForm.locator" :disabled="isCompletedImport" placeholder="Optional page, theorem, section" />
           </label>
         </div>
+        <details class="zotero-picker-shell">
+          <summary>Choose source from Zotero</summary>
+          <ZoteroPicker :disabled="isCompletedImport" @select="selectAiZoteroItem" />
+        </details>
         <div class="toolbar">
           <button class="button primary" type="button" :disabled="extracting || isCompletedImport || !aiForm.raw_excerpt.trim()" @click="extract">
             <Sparkles :size="16" aria-hidden="true" />
@@ -316,7 +320,19 @@
               <option value="original">original</option>
             </select>
           </label>
+          <label>
+            Citekey
+            <input v-model="draftSource.citekey" placeholder="Optional Zotero citekey" />
+          </label>
+          <label>
+            Locator
+            <input v-model="draftSource.locator" placeholder="Optional page, theorem, section" />
+          </label>
         </div>
+        <details class="zotero-picker-shell">
+          <summary>Choose source from Zotero</summary>
+          <ZoteroPicker @select="selectDraftZoteroItem" />
+        </details>
         <label>
           Body
           <textarea v-model="draft.body" required rows="16" />
@@ -363,6 +379,7 @@ import {
 import { api } from "../api/client";
 import FragmentCard from "../components/FragmentCard.vue";
 import MarkdownLatexRenderer from "../components/MarkdownLatexRenderer.vue";
+import ZoteroPicker from "../components/ZoteroPicker.vue";
 import { useAILogsStore } from "../stores/aiLogs";
 import { useFragmentsStore } from "../stores/fragments";
 import { useSettingsStore } from "../stores/settings";
@@ -374,7 +391,8 @@ import type {
   Fragment,
   ImportBatch,
   ImportPreview,
-  Topic
+  Topic,
+  ZoteroItem
 } from "../types";
 import { fragmentTypes } from "../types";
 
@@ -415,6 +433,10 @@ const draft = reactive<Partial<Fragment>>({
   topic_id: null,
   origin_classification: "user_original",
   exactness: "original"
+});
+const draftSource = reactive({
+  citekey: "",
+  locator: ""
 });
 
 const recentDrafts = computed(() =>
@@ -600,14 +622,58 @@ async function storeDraft() {
       ...draft,
       title,
       status: "draft",
-      topic_id: draft.topic_id || null
+      topic_id: draft.topic_id || null,
+      source_citekey: emptyToNull(draftSource.citekey),
+      source_locator: emptyToNull(draftSource.locator)
     });
     message.value = `Stored draft fragment ${fragment.id}.`;
     draft.title = "";
     draft.body = "";
+    draftSource.citekey = "";
+    draftSource.locator = "";
     await fragments.load({ status: "draft" });
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : String(caught);
+  }
+}
+
+async function selectAiZoteroItem(item: ZoteroItem) {
+  await applyZoteroSelection(item, (citekey) => {
+    aiForm.citekey = citekey;
+  });
+}
+
+async function selectDraftZoteroItem(item: ZoteroItem) {
+  await applyZoteroSelection(item, (citekey) => {
+    draftSource.citekey = citekey;
+  });
+}
+
+async function applyZoteroSelection(item: ZoteroItem, assign: (citekey: string) => void) {
+  aiError.value = "";
+  error.value = "";
+  if (!item.citation_key) {
+    const messageText = "Selected Zotero item has no citationKey. Add a Better BibTeX citekey in Zotero first.";
+    aiError.value = activeTab.value === "ai" ? messageText : aiError.value;
+    error.value = activeTab.value === "manual" ? messageText : error.value;
+    return;
+  }
+  try {
+    const syncResult = await api.zoteroSync([item.key]);
+    if (!syncResult.available) {
+      const messageText = syncResult.error || "Zotero Local API is unavailable.";
+      aiError.value = activeTab.value === "ai" ? messageText : aiError.value;
+      error.value = activeTab.value === "manual" ? messageText : error.value;
+      return;
+    }
+    assign(item.citation_key);
+    const messageText = `Selected Zotero source ${item.citation_key}.`;
+    aiMessage.value = activeTab.value === "ai" ? messageText : aiMessage.value;
+    message.value = activeTab.value === "manual" ? messageText : message.value;
+  } catch (caught) {
+    const messageText = caught instanceof Error ? caught.message : String(caught);
+    aiError.value = activeTab.value === "ai" ? messageText : aiError.value;
+    error.value = activeTab.value === "manual" ? messageText : error.value;
   }
 }
 

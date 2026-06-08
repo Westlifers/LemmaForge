@@ -15,6 +15,8 @@ class FragmentCreate(BaseModel):
     topic_id: str | None = None
     origin_classification: OriginClassification = "unknown"
     exactness: Exactness = "interpretation"
+    source_citekey: str | None = None
+    source_locator: str | None = None
 
 
 class FragmentUpdate(BaseModel):

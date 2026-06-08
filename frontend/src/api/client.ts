@@ -21,7 +21,11 @@ import type {
   ResearchPatch,
   Source,
   SourcePointer,
-  TopicGraph
+  TopicGraph,
+  ZoteroItemResult,
+  ZoteroSearchResult,
+  ZoteroStatus,
+  ZoteroSyncResult
 } from "../types";
 
 const jsonHeaders = { "Content-Type": "application/json" };
@@ -64,7 +68,7 @@ export const api = {
   listFragments(filters: FragmentFilters = {}) {
     return request<Fragment[]>(`/api/fragments${queryString(filters)}`);
   },
-  createFragment(payload: Partial<Fragment>) {
+  createFragment(payload: Partial<Fragment> & { source_citekey?: string | null; source_locator?: string | null }) {
     return request<Fragment>("/api/fragments", {
       method: "POST",
       headers: jsonHeaders,
@@ -288,15 +292,32 @@ export const api = {
     return request<ContextPack[]>(`/api/topics/${topicId}/context-packs`);
   },
   zoteroStatus() {
-    return request<Record<string, unknown>>("/api/zotero/status");
+    return request<ZoteroStatus>("/api/zotero/status");
   },
-  zoteroSearch(query: string) {
-    return request<{ query: string; results: Array<Record<string, string | null>> }>(
-      `/api/zotero/search?query=${encodeURIComponent(query)}`
+  saveZoteroSettings(payload: { zotero_local_api_url?: string | null; references_bib?: string | null; zotero_data_dir?: string | null }) {
+    return request<{ saved: boolean; path: string }>("/api/zotero/settings", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload)
+    });
+  },
+  zoteroSearch(query: string, limit = 20) {
+    return request<ZoteroSearchResult>(
+      `/api/zotero/search?query=${encodeURIComponent(query)}&limit=${limit}`
     );
   },
-  zoteroSync() {
-    return request<Source[]>("/api/zotero/sync", { method: "POST" });
+  getZoteroItem(itemKey: string) {
+    return request<ZoteroItemResult>(`/api/zotero/items/${encodeURIComponent(itemKey)}`);
+  },
+  zoteroSync(itemKeys?: string[]) {
+    return request<ZoteroSyncResult>("/api/zotero/sync", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify(itemKeys?.length ? { item_keys: itemKeys } : {})
+    });
+  },
+  zoteroSyncBibtex() {
+    return request<Source[]>("/api/zotero/sync-bibtex", { method: "POST" });
   },
   listSources(search = "") {
     return request<Source[]>(`/api/sources${search ? `?search=${encodeURIComponent(search)}` : ""}`);
