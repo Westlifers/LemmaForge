@@ -44,7 +44,7 @@ def test_topic_graph_returns_internal_fragments_relations_and_positions(db_sessi
         db,
         RelationCreate(
             source_fragment_id=first.id,
-            relation_kind="uses",
+            relation_kind="depends_on",
             target_fragment_id=outside.id,
         ),
     )
@@ -102,7 +102,7 @@ def test_relation_update_can_reconnect_source_and_target(db_session):
         relation,
         RelationUpdate(
             source_fragment_id=next_source.id,
-            relation_kind="uses",
+            relation_kind="refines",
             target_fragment_id=next_target.id,
             confidence=0.75,
         ),
@@ -110,7 +110,7 @@ def test_relation_update_can_reconnect_source_and_target(db_session):
 
     assert updated.source_fragment_id == next_source.id
     assert updated.target_fragment_id == next_target.id
-    assert updated.relation_kind == "uses"
+    assert updated.relation_kind == "refines"
     assert updated.confidence == 0.75
 
 

@@ -156,9 +156,25 @@
               <label>
                 Kind
                 <select v-model="relationDraft.relation_kind">
-                  <option v-for="kind in relationKinds" :key="kind" :value="kind">{{ kind }}</option>
+                  <option v-if="isLegacyRelationKind(selectedRelation.relation_kind)" :value="selectedRelation.relation_kind" disabled>
+                    Legacy: {{ selectedRelation.relation_kind }}
+                  </option>
+                  <optgroup label="Recommended">
+                    <option v-for="kind in selectedRelationKindOptions.recommended" :key="kind" :value="kind">{{ kind }}</option>
+                  </optgroup>
+                  <optgroup label="Other">
+                    <option v-for="kind in selectedRelationKindOptions.regular" :key="kind" :value="kind">{{ kind }}</option>
+                  </optgroup>
+                  <optgroup v-if="showAdvancedRelationKinds" label="Advanced">
+                    <option v-for="kind in selectedRelationKindOptions.advanced" :key="kind" :value="kind">{{ kind }}</option>
+                  </optgroup>
                 </select>
               </label>
+              <label class="inline-check">
+                <input v-model="showAdvancedRelationKinds" type="checkbox" />
+                Show advanced relations
+              </label>
+              <span v-if="isLegacyRelationKind(selectedRelation.relation_kind)" class="chip" data-chip="warning">Legacy relation</span>
               <label>
                 Confidence
                 <input v-model.number="relationDraft.confidence" min="0" max="1" step="0.01" type="number" />
@@ -574,6 +590,7 @@ import ContextPackPreview from "../components/ContextPackPreview.vue";
 import MarkdownLatexRenderer from "../components/MarkdownLatexRenderer.vue";
 import { useAILogsStore } from "../stores/aiLogs";
 import { useSettingsStore } from "../stores/settings";
+import { isLegacyRelationKind, relationKindOptions } from "../utils/relationKinds";
 import type {
   ContextPack,
   ContextPackItemInput,
@@ -612,6 +629,7 @@ const topicFragmentOrigin = ref("");
 const selectedTopicFragmentIds = ref<string[]>([]);
 const bulkStatusTarget = ref("");
 const deleteTopicFragmentsConfirmOpen = ref(false);
+const showAdvancedRelationKinds = ref(false);
 const addSearch = ref("");
 const selectedAddFragmentIds = ref<string[]>([]);
 const contextSuggesting = ref(false);
@@ -638,6 +656,20 @@ let contextPollTimer: number | undefined;
 let messageTimer: number | undefined;
 const graphNodeSize = { width: 320, height: 74 };
 const graphHandlePositions = [Position.Left, Position.Right, Position.Top, Position.Bottom];
+const relationVisuals: Record<string, { color: string; width: number; dash?: string; marker: MarkerType; tone: string }> = {
+  depends_on: { color: "#2563eb", width: 2.2, marker: MarkerType.ArrowClosed, tone: "blue" },
+  proof_of: { color: "#7c3aed", width: 3, marker: MarkerType.ArrowClosed, tone: "purple" },
+  refines: { color: "#64748b", width: 2.1, marker: MarkerType.ArrowClosed, tone: "slate" },
+  replaces: { color: "#b45309", width: 2.3, dash: "8 5", marker: MarkerType.ArrowClosed, tone: "amber" },
+  contradicts: { color: "#dc2626", width: 2.6, dash: "9 5", marker: MarkerType.ArrowClosed, tone: "red" },
+  generalizes: { color: "#16a34a", width: 2.4, marker: MarkerType.ArrowClosed, tone: "green" },
+  is_example_of: { color: "#0d9488", width: 2.2, marker: MarkerType.ArrowClosed, tone: "teal" },
+  is_counterexample_to: { color: "#ea580c", width: 2.4, dash: "7 4", marker: MarkerType.ArrowClosed, tone: "orange" },
+  uses_notation: { color: "#0891b2", width: 2, dash: "2 5", marker: MarkerType.ArrowClosed, tone: "cyan" },
+  questions: { color: "#d97706", width: 2.2, dash: "6 5", marker: MarkerType.ArrowClosed, tone: "yellow" },
+  compares_with: { color: "#64748b", width: 1.9, dash: "5 5", marker: MarkerType.ArrowClosed, tone: "slate" },
+  inspired_by: { color: "#6b7280", width: 1.9, dash: "2 5", marker: MarkerType.ArrowClosed, tone: "gray" },
+};
 
 const fragmentDraft = reactive({
   title: "",
@@ -649,37 +681,18 @@ const relationDraft = reactive({
   relation_kind: "depends_on",
   confidence: null as number | null,
 });
-const relationKinds = [
-  "depends_on",
-  "uses",
-  "proves",
-  "proof_of",
-  "refines",
-  "replaces",
-  "contradicts",
-  "generalizes",
-  "specializes_to",
-  "is_example_of",
-  "is_counterexample_to",
-  "cites",
-  "quotes",
-  "paraphrases",
-  "restates",
-  "adopts_notation_from",
-  "depends_on_notation",
-  "inspired_by",
-  "generalizes_external_result",
-  "specializes_external_result",
-  "questions_external_claim",
-  "compares_with",
-  "came_from",
-];
-
 const selectedFragment = computed(() =>
   graph.value?.fragments.find((fragment) => fragment.id === selectedFragmentId.value) || null
 );
 const selectedRelation = computed(() =>
   graph.value?.relations.find((relation) => relation.id === selectedRelationId.value) || null
+);
+const selectedRelationSourceType = computed(() => {
+  if (!selectedRelation.value) return null;
+  return graph.value?.fragments.find((fragment) => fragment.id === selectedRelation.value?.source_fragment_id)?.type || null;
+});
+const selectedRelationKindOptions = computed(() =>
+  relationKindOptions(selectedRelationSourceType.value, selectedRelation.value?.relation_kind)
 );
 const inspectorOpen = computed(() => !!selectedFragment.value || !!selectedRelation.value);
 const fragmentDirty = computed(() => {
@@ -882,6 +895,7 @@ function averageDirectionPosition(
 
 function edgeForRelation(relation: Relation, positions: Record<string, { x: number; y: number }>) {
   const handles = relationHandlesFor(relation, positions);
+  const visual = relationVisual(relation.relation_kind);
   return {
     id: relation.id,
     source: relation.source_fragment_id,
@@ -891,13 +905,38 @@ function edgeForRelation(relation: Relation, positions: Record<string, { x: numb
     label: relation.relation_kind,
     type: "bezier",
     updatable: true,
-    markerEnd: MarkerType.ArrowClosed,
+    markerEnd: {
+      type: visual.marker,
+      color: visual.color,
+      width: visual.width >= 3 ? 22 : 18,
+      height: visual.width >= 3 ? 22 : 18,
+    },
+    style: {
+      stroke: visual.color,
+      strokeWidth: visual.width,
+      strokeDasharray: visual.dash || undefined,
+    },
+    labelBgStyle: {
+      fill: "var(--surface)",
+      stroke: visual.color,
+      strokeWidth: 1,
+    },
+    labelStyle: {
+      fill: visual.color,
+      fontWeight: 800,
+    },
     class: [
+      `relation-edge-${visual.tone}`,
+      `relation-kind-${relation.relation_kind}`,
       selectedRelationId.value === relation.id ? "selected" : "",
       relationDirty.value && selectedRelationId.value === relation.id ? "dirty" : "",
     ].filter(Boolean).join(" "),
     data: relation,
   };
+}
+
+function relationVisual(kind: string) {
+  return relationVisuals[kind] || { color: "#64748b", width: 2, marker: MarkerType.ArrowClosed, tone: "slate" };
 }
 
 function relationHandlesFor(relation: Relation, positions: Record<string, { x: number; y: number }>) {

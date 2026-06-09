@@ -733,6 +733,12 @@ button {
   color: #0a4f8a;
 }
 
+.chip[data-chip="warning"] {
+  border-color: #e3a63f;
+  background: #fff0bf;
+  color: #7a4a00;
+}
+
 .status[data-status="candidate"],
 .status[data-status="raw"] {
   border-color: #e2b14c;
@@ -4592,26 +4598,31 @@ label,
 }
 
 .topic-flow--fullscreen .vue-flow__edge-path {
-  stroke-width: 2;
+  filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.08));
+  transition: stroke 160ms ease, stroke-width 160ms ease, opacity 160ms ease;
 }
 
 .topic-flow--fullscreen .vue-flow__edge.selected .vue-flow__edge-path,
 .topic-flow--fullscreen .vue-flow__edge.dirty .vue-flow__edge-path {
-  stroke: var(--accent-strong);
-  stroke-width: 3;
+  stroke-width: 3.6;
+  opacity: 1;
 }
 
 .topic-flow--fullscreen .vue-flow__edge-textbg {
   fill: color-mix(in srgb, var(--surface-solid) 92%, transparent);
-  stroke: rgba(8, 124, 118, 0.18);
   stroke-width: 1;
   rx: 8px;
 }
 
 .topic-flow--fullscreen .vue-flow__edge-text {
-  fill: var(--accent-strong);
   font-size: 11px;
   font-weight: 750;
+}
+
+.topic-flow--fullscreen .vue-flow__edge.relation-edge-red .vue-flow__edge-text,
+.topic-flow--fullscreen .vue-flow__edge.relation-edge-orange .vue-flow__edge-text,
+.topic-flow--fullscreen .vue-flow__edge.relation-edge-yellow .vue-flow__edge-text {
+  font-weight: 850;
 }
 
 .floating-inspector-panel,

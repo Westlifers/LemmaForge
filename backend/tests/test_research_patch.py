@@ -77,6 +77,29 @@ def test_invalid_relation_kind_is_rejected():
         ResearchPatch.model_validate(data)
 
 
+def test_removed_relation_kind_is_rejected():
+    data = valid_patch_dict()
+    data["fragments"].append(
+        {
+            "local_id": "prop_test",
+            "type": "Proposition",
+            "title": "Test proposition",
+            "status": "candidate",
+            "origin_classification": "assistant_generated",
+            "exactness": "interpretation",
+            "body": "The test definition has a test proposition.",
+            "assumptions": [],
+            "conclusion": None,
+            "confidence": 0.7,
+            "source_excerpt": None,
+        }
+    )
+    data["relations"] = [{"source": "prop_test", "kind": "uses", "target": "def_test", "confidence": 0.4}]
+
+    with pytest.raises(ValidationError):
+        ResearchPatch.model_validate(data)
+
+
 def test_research_patch_schema_is_strict_response_format_compatible():
     schema_path = Path(__file__).resolve().parents[2] / "schemas" / "research_patch.schema.json"
     schema = json.loads(schema_path.read_text(encoding="utf-8"))

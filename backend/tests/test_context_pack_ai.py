@@ -149,7 +149,7 @@ def test_context_pack_save_export_and_topic_history(db_session):
         db,
         RelationCreate(
             source_fragment_id=theorem.id,
-            relation_kind="uses",
+            relation_kind="depends_on",
             target_fragment_id=outside.id,
         ),
     )

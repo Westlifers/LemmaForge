@@ -353,28 +353,17 @@ Fields:
 Allowed relation kinds:
 
 * depends_on
-* uses
-* proves
 * proof_of
 * refines
 * replaces
 * contradicts
 * generalizes
-* specializes_to
 * is_example_of
 * is_counterexample_to
-* cites
-* quotes
-* paraphrases
-* restates
-* adopts_notation_from
-* depends_on_notation
-* inspired_by
-* generalizes_external_result
-* specializes_external_result
-* questions_external_claim
+* uses_notation
+* questions
 * compares_with
-* came_from
+* inspired_by
 
 ### Source
 

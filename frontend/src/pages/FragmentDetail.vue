@@ -61,8 +61,20 @@
               <label>
                 Kind
                 <select v-model="newRelation.kind">
-                  <option v-for="kind in relationKinds" :key="kind" :value="kind">{{ kind }}</option>
+                  <optgroup label="Recommended">
+                    <option v-for="kind in relationKindOptions(fragment?.type, newRelation.kind).recommended" :key="kind" :value="kind">{{ kind }}</option>
+                  </optgroup>
+                  <optgroup label="Other">
+                    <option v-for="kind in relationKindOptions(fragment?.type, newRelation.kind).regular" :key="kind" :value="kind">{{ kind }}</option>
+                  </optgroup>
+                  <optgroup v-if="showAdvancedRelationKinds" label="Advanced">
+                    <option v-for="kind in relationKindOptions(fragment?.type, newRelation.kind).advanced" :key="kind" :value="kind">{{ kind }}</option>
+                  </optgroup>
                 </select>
+              </label>
+              <label class="inline-check">
+                <input v-model="showAdvancedRelationKinds" type="checkbox" />
+                Show advanced relations
               </label>
               <label>
                 Target
@@ -81,8 +93,8 @@
             </form>
           </Transition>
         </section>
-        <RelationList title="Outgoing Relations" :relations="outgoingRelations" @update="updateRelation" @delete="deleteRelation" />
-        <RelationList title="Incoming Relations" :relations="incomingRelations" @update="updateRelation" @delete="deleteRelation" />
+        <RelationList title="Outgoing Relations" :relations="outgoingRelations" :show-advanced="showAdvancedRelationKinds" @update="updateRelation" @delete="deleteRelation" />
+        <RelationList title="Incoming Relations" :relations="incomingRelations" :show-advanced="showAdvancedRelationKinds" @update="updateRelation" @delete="deleteRelation" />
         <SourcePointerView :pointers="sourcePointers" />
         <section class="plain-section">
           <h3>Versions</h3>
@@ -159,6 +171,7 @@ import RelationList from "../components/RelationList.vue";
 import SourcePointerView from "../components/SourcePointerView.vue";
 import StatusBadge from "../components/StatusBadge.vue";
 import type { Fragment, FragmentVersion, Relation, SourcePointer, Topic } from "../types";
+import { relationKindOptions } from "../utils/relationKinds";
 
 const props = defineProps<{ id: string }>();
 const route = useRoute();
@@ -174,33 +187,9 @@ const editing = ref(false);
 const relationEditorOpen = ref(false);
 const deleteConfirmOpen = ref(false);
 const deleteLoading = ref(false);
+const showAdvancedRelationKinds = ref(false);
 const error = ref("");
 const topicMessage = ref("");
-const relationKinds = [
-  "depends_on",
-  "uses",
-  "proves",
-  "proof_of",
-  "refines",
-  "replaces",
-  "contradicts",
-  "generalizes",
-  "specializes_to",
-  "is_example_of",
-  "is_counterexample_to",
-  "cites",
-  "quotes",
-  "paraphrases",
-  "restates",
-  "adopts_notation_from",
-  "depends_on_notation",
-  "inspired_by",
-  "generalizes_external_result",
-  "specializes_external_result",
-  "questions_external_claim",
-  "compares_with",
-  "came_from"
-];
 const newRelation = ref({
   kind: "depends_on",
   target: "",

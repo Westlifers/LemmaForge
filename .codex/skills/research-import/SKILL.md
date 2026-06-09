@@ -72,12 +72,12 @@ If external material lacks citation metadata, add a warning.
 Relations are proposals only. Output high-confidence structural relations among extracted fragments:
 
 - theorem-like fragments usually `depends_on` relevant definitions
-- constructions usually `uses` context or notation
+- constructions usually `depends_on` relevant context
 - proof sketches usually `proof_of` their claim
-- remarks/questions usually `depends_on`, `refines`, or `compares_with` the claim they concern
-- notation use may `depends_on_notation` or `adopts_notation_from`
+- remarks/questions usually `questions`, `depends_on`, `refines`, or `compares_with` the claim they concern
+- notation use must be `uses_notation`
 
-Use only relation kinds allowed by the schema. Do not output unsupported kinds such as `questions`. Do not relate fragments to source pointers; provenance belongs in `source_pointers`.
+Use only relation kinds allowed by the schema. Relations must express fragment-to-fragment mathematical structure only. Do not use relations for provenance, citation, quotation, paraphrase, restatement, or import origin; provenance belongs in `source_pointers`, exactness, and origin metadata.
 
 Every relation must include `confidence`.
 

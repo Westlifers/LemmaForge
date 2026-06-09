@@ -45,6 +45,20 @@ export type Exactness =
   | "reconstruction"
   | "original";
 
+export type RelationKind =
+  | "depends_on"
+  | "proof_of"
+  | "refines"
+  | "replaces"
+  | "contradicts"
+  | "generalizes"
+  | "is_example_of"
+  | "is_counterexample_to"
+  | "uses_notation"
+  | "questions"
+  | "compares_with"
+  | "inspired_by";
+
 export interface Fragment {
   id: string;
   type: FragmentType;
@@ -82,7 +96,7 @@ export interface FragmentVersion {
 export interface Relation {
   id: string;
   source_fragment_id: string;
-  relation_kind: string;
+  relation_kind: RelationKind | string;
   target_fragment_id: string;
   confidence: number | null;
   created_at: string;

@@ -14,8 +14,20 @@
       <li v-for="relation in relations" :key="relation.id" class="relation-row">
         <code>{{ relation.source_fragment_id }}</code>
         <select :value="relation.relation_kind" @change="updateKind(relation, $event)">
-          <option v-for="kind in relationKinds" :key="kind" :value="kind">{{ kind }}</option>
+          <option v-if="isLegacyRelationKind(relation.relation_kind)" :value="relation.relation_kind" disabled>
+            Legacy: {{ relation.relation_kind }}
+          </option>
+          <optgroup label="Recommended">
+            <option v-for="kind in relationKindOptions(null, relation.relation_kind).recommended" :key="kind" :value="kind">{{ kind }}</option>
+          </optgroup>
+          <optgroup label="Other">
+            <option v-for="kind in relationKindOptions(null, relation.relation_kind).regular" :key="kind" :value="kind">{{ kind }}</option>
+          </optgroup>
+          <optgroup v-if="showAdvanced" label="Advanced">
+            <option v-for="kind in relationKindOptions(null, relation.relation_kind).advanced" :key="kind" :value="kind">{{ kind }}</option>
+          </optgroup>
         </select>
+        <span v-if="isLegacyRelationKind(relation.relation_kind)" class="chip" data-chip="warning">Legacy</span>
         <code>{{ relation.target_fragment_id }}</code>
         <input
           :value="relation.confidence ?? ''"
@@ -37,38 +49,13 @@
 <script setup lang="ts">
 import { GitBranch, Trash2 } from "lucide-vue-next";
 import type { Relation } from "../types";
+import { isLegacyRelationKind, relationKindOptions } from "../utils/relationKinds";
 
-defineProps<{ title: string; relations: Relation[] }>();
+defineProps<{ title: string; relations: Relation[]; showAdvanced?: boolean }>();
 const emit = defineEmits<{
   update: [id: string, payload: { relation_kind?: string; confidence?: number | null }];
   delete: [id: string];
 }>();
-
-const relationKinds = [
-  "depends_on",
-  "uses",
-  "proves",
-  "proof_of",
-  "refines",
-  "replaces",
-  "contradicts",
-  "generalizes",
-  "specializes_to",
-  "is_example_of",
-  "is_counterexample_to",
-  "cites",
-  "quotes",
-  "paraphrases",
-  "restates",
-  "adopts_notation_from",
-  "depends_on_notation",
-  "inspired_by",
-  "generalizes_external_result",
-  "specializes_external_result",
-  "questions_external_claim",
-  "compares_with",
-  "came_from"
-];
 
 function updateKind(relation: Relation, event: Event) {
   emit("update", relation.id, {

@@ -1,0 +1,54 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "启动前端",
+            "type": "shell",
+            "command": "npm run dev",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "isBackground": true,
+            "presentation": {
+                "group": "dev-group",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "启动后端",
+            "type": "shell",
+            "command": "uvicorn app.main:app --reload",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "isBackground": true,
+            "presentation": {
+                "group": "dev-group",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "启动 Zotero",
+            "type": "process",
+            "command": "D:\\3rdpartyapps\\zotero\\zotero.exe",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "never"
+            }
+        },
+        {
+            "label": "🚀 一键启动所有服务",
+            "dependsOn": [
+                "启动前端",
+                "启动后端",
+                "启动 Zotero"
+            ],
+            "dependsOrder": "parallel",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}

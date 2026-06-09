@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Generator
+from datetime import UTC, datetime
 
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import bindparam, create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from .config import ensure_local_directories, get_settings
@@ -113,3 +115,84 @@ def _ensure_lightweight_sqlite_migrations() -> None:
                     connection.execute(
                         text(f"ALTER TABLE context_packs ADD COLUMN {column_name} {column_type}")
                     )
+        if "relations" in table_names:
+            _migrate_relation_kinds(connection)
+
+
+def _migrate_relation_kinds(connection) -> None:
+    archive_kinds = {"cites", "quotes", "paraphrases", "restates", "came_from"}
+    archive_rows = connection.execute(
+        text(
+            "SELECT id, relation_kind, source_fragment_id, target_fragment_id, confidence, created_at "
+            "FROM relations WHERE relation_kind IN :kinds"
+        ).bindparams(bindparam("kinds", expanding=True)),
+        {"kinds": tuple(archive_kinds)},
+    ).mappings().all()
+    if archive_rows:
+        _archive_legacy_relations([dict(row) for row in archive_rows])
+        connection.execute(
+            text("DELETE FROM relations WHERE relation_kind IN :kinds").bindparams(
+                bindparam("kinds", expanding=True)
+            ),
+            {"kinds": tuple(archive_kinds)},
+        )
+
+    kind_map = {
+        "uses": "depends_on",
+        "proves": "proof_of",
+        "adopts_notation_from": "uses_notation",
+        "depends_on_notation": "uses_notation",
+        "questions_external_claim": "questions",
+        "generalizes_external_result": "generalizes",
+    }
+    for old_kind, new_kind in kind_map.items():
+        connection.execute(
+            text(
+                "UPDATE relations SET relation_kind = :new_kind "
+                "WHERE relation_kind = :old_kind"
+            ),
+            {"old_kind": old_kind, "new_kind": new_kind},
+        )
+
+    swap_kinds = ("specializes_to", "specializes_external_result")
+    connection.execute(
+        text(
+            "UPDATE relations "
+            "SET relation_kind = 'generalizes', "
+            "source_fragment_id = target_fragment_id, "
+            "target_fragment_id = source_fragment_id "
+            "WHERE relation_kind IN :kinds"
+        ).bindparams(bindparam("kinds", expanding=True)),
+        {"kinds": swap_kinds},
+    )
+
+
+def _archive_legacy_relations(rows: list[dict]) -> None:
+    settings = get_settings()
+    archive_path = settings.vault_dir.parent / "data" / "relation_migration_archive.json"
+    archive_path.parent.mkdir(parents=True, exist_ok=True)
+    existing: list[dict] = []
+    if archive_path.exists():
+        try:
+            parsed = json.loads(archive_path.read_text(encoding="utf-8"))
+            existing = parsed if isinstance(parsed, list) else []
+        except (json.JSONDecodeError, OSError):
+            existing = []
+    archived_ids = {entry.get("id") for entry in existing}
+    archived_at = datetime.now(UTC).isoformat()
+    for row in rows:
+        if row["id"] in archived_ids:
+            continue
+        existing.append(
+            {
+                "id": row["id"],
+                "old_kind": row["relation_kind"],
+                "source_fragment_id": row["source_fragment_id"],
+                "target_fragment_id": row["target_fragment_id"],
+                "confidence": row["confidence"],
+                "created_at": str(row["created_at"]) if row["created_at"] is not None else None,
+                "archive_reason": "Provenance-style relation moved out of active mathematical graph.",
+                "archived_at": archived_at,
+            }
+        )
+    archive_path.write_text(json.dumps(existing, indent=2), encoding="utf-8")

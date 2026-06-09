@@ -65,7 +65,7 @@ def ai_patch() -> ResearchPatch:
             "relations": [
                 {
                     "source": "canonical_extension",
-                    "kind": "uses",
+                    "kind": "depends_on",
                     "target": "downset_lattice",
                     "confidence": 0.6,
                 }
