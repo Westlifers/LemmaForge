@@ -77,7 +77,8 @@ def test_invalid_relation_kind_is_rejected():
         ResearchPatch.model_validate(data)
 
 
-def test_removed_relation_kind_is_rejected():
+@pytest.mark.parametrize("removed_kind", ["uses", "quotes", "came_from"])
+def test_removed_relation_kind_is_rejected(removed_kind):
     data = valid_patch_dict()
     data["fragments"].append(
         {
@@ -94,7 +95,45 @@ def test_removed_relation_kind_is_rejected():
             "source_excerpt": None,
         }
     )
-    data["relations"] = [{"source": "prop_test", "kind": "uses", "target": "def_test", "confidence": 0.4}]
+    data["relations"] = [
+        {"source": "prop_test", "kind": removed_kind, "target": "def_test", "confidence": 0.4}
+    ]
+
+    with pytest.raises(ValidationError):
+        ResearchPatch.model_validate(data)
+
+
+def test_source_pointer_requires_citekey_or_inline_source_metadata():
+    data = valid_patch_dict()
+    data["source_pointers"] = [
+        {
+            "fragment_local_id": "def_test",
+            "citekey": None,
+            "source": None,
+            "locator": "p. 1",
+            "exactness": "paraphrase",
+            "quote_text": None,
+            "note": "This pointer is missing durable source identity.",
+        }
+    ]
+
+    with pytest.raises(ValidationError):
+        ResearchPatch.model_validate(data)
+
+
+def test_source_pointer_rejects_unknown_patch_fragment():
+    data = valid_patch_dict()
+    data["source_pointers"] = [
+        {
+            "fragment_local_id": "missing_fragment",
+            "citekey": "Example2026",
+            "source": None,
+            "locator": "p. 1",
+            "exactness": "paraphrase",
+            "quote_text": None,
+            "note": "The target fragment must exist inside the patch.",
+        }
+    ]
 
     with pytest.raises(ValidationError):
         ResearchPatch.model_validate(data)
