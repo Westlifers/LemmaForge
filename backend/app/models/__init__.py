@@ -4,6 +4,7 @@ from .import_batch import ImportBatch
 from .problem import (
     Attempt,
     AttemptFragmentLink,
+    AttemptGraphNodePosition,
     ProblemFragmentLink,
     ProblemGraphNodePosition,
     ProblemTopicLink,
@@ -17,6 +18,7 @@ __all__ = [
     "ContextPackItem",
     "Attempt",
     "AttemptFragmentLink",
+    "AttemptGraphNodePosition",
     "Fragment",
     "FragmentVersion",
     "ImportBatch",

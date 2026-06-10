@@ -31,7 +31,7 @@
     <p v-if="message" class="topic-floating-message success-text">{{ message }}</p>
     <p v-if="error" class="topic-floating-message error-text">{{ error }}</p>
 
-    <section v-if="workspace" class="problem-graph-shell attempt-graph-shell">
+    <section v-if="workspace" class="problem-graph-shell attempt-graph-shell" :class="{ 'without-right-panel': !detailsPanelOpen }">
       <aside class="problem-overview-panel attempt-summary-panel">
         <header>
           <div>
@@ -92,13 +92,47 @@
             <Library :size="16" aria-hidden="true" />
             Add Fragments
           </button>
-          <button class="button subtle" type="button" @click="syncFlowElements">
-            <GitBranch :size="16" aria-hidden="true" />
-            Auto Arrange
+          <button class="button subtle" :class="{ active: graphControlsOpen }" type="button" @click="graphControlsOpen = !graphControlsOpen">
+            <SlidersHorizontal :size="16" aria-hidden="true" />
+            Graph Controls
+          </button>
+          <button class="button subtle" :class="{ active: detailsPanelOpen }" type="button" @click="detailsPanelOpen = !detailsPanelOpen">
+            <PanelRight :size="16" aria-hidden="true" />
+            Details
           </button>
         </div>
 
         <section v-if="viewMode === 'graph'" class="problem-graph-stage attempt-graph-stage">
+          <Transition name="popover">
+            <div v-if="graphControlsOpen" class="problem-graph-controls-panel">
+              <header>
+                <div>
+                  <span class="eyebrow">Graph Controls</span>
+                  <strong>Attempt graph layers</strong>
+                </div>
+                <button class="icon-button" type="button" aria-label="Close graph controls" @click="graphControlsOpen = false">
+                  <X :size="16" aria-hidden="true" />
+                </button>
+              </header>
+              <div class="problem-edge-filter-group">
+                <button class="button compact subtle" :class="{ active: showAttemptRoleEdges }" type="button" @click="toggleAttemptRoleEdges">
+                  <Eye v-if="showAttemptRoleEdges" :size="14" aria-hidden="true" />
+                  <EyeOff v-else :size="14" aria-hidden="true" />
+                  Role links
+                </button>
+                <button class="button compact subtle" :class="{ active: showMathRelationEdges }" type="button" @click="toggleMathRelationEdges">
+                  <Eye v-if="showMathRelationEdges" :size="14" aria-hidden="true" />
+                  <EyeOff v-else :size="14" aria-hidden="true" />
+                  Math relations
+                </button>
+              </div>
+              <button class="button subtle" type="button" @click="autoArrange">
+                <GitBranch :size="16" aria-hidden="true" />
+                Auto Arrange
+              </button>
+            </div>
+          </Transition>
+
           <VueFlow
             v-model:nodes="nodes"
             v-model:edges="edges"
@@ -107,6 +141,7 @@
             :default-edge-options="{ type: 'bezier' }"
             @node-click="selectGraphNode"
             @node-drag="refreshDynamicHandles"
+            @node-drag-stop="saveLayout"
             @pane-click="selectedLinkId = ''"
           >
             <template #node-default="{ data }">
@@ -178,7 +213,7 @@
         </section>
       </main>
 
-      <aside class="problem-right-panel attempt-details-panel">
+      <aside v-if="detailsPanelOpen" class="problem-right-panel attempt-details-panel">
         <section class="plain-section">
           <header class="section-header">
             <div>
@@ -311,15 +346,19 @@ import "@vue-flow/core/dist/theme-default.css";
 import {
   BookOpen,
   Box,
+  Eye,
+  EyeOff,
   FileQuestion,
   GitBranch,
   Library,
   Lightbulb,
   Network,
   Pencil,
+  PanelRight,
   RefreshCw,
   Save,
   Sigma,
+  SlidersHorizontal,
   Table2,
   Target,
   Trash2,
@@ -346,6 +385,10 @@ const saving = ref(false);
 const message = ref("");
 const error = ref("");
 const fragmentSearch = ref("");
+const graphControlsOpen = ref(false);
+const detailsPanelOpen = ref(true);
+const showAttemptRoleEdges = ref(true);
+const showMathRelationEdges = ref(true);
 
 const draft = reactive({
   title: "",
@@ -402,7 +445,7 @@ function syncFlowElements() {
     {
       id: attemptNodeKey,
       type: "default",
-      position: { x: 460, y: 170 },
+      position: savedOrDefault(attemptNodeKey, { x: 460, y: 170 }),
       data: {
         kind: "attempt",
         title: workspace.value.attempt.title,
@@ -419,7 +462,7 @@ function syncFlowElements() {
       generatedNodes.push({
         id: fragmentNodeKey(link),
         type: "default",
-        position: { x: column.x, y: column.y + index * 132 },
+        position: savedOrDefault(fragmentNodeKey(link), { x: column.x, y: column.y + index * 132 }),
         data: {
           kind: "fragment",
           title: link.fragment?.title || link.fragment_id,
@@ -433,21 +476,23 @@ function syncFlowElements() {
   }
 
   const positionsById = positionsFromNodes(generatedNodes);
-  const roleEdges: Edge[] = workspace.value.fragment_links.map((link) => dynamicEdge({
-    id: `attempt-role-${link.id}`,
-    source: attemptNodeKey,
-    target: fragmentNodeKey(link),
-    label: link.role,
-    animated: ["blocked_by", "refuted_by", "needs_revision"].includes(String(link.role)),
-    class: "problem-role-edge",
-    style: { stroke: roleColor(String(link.role)), strokeWidth: 2.1 },
-    labelStyle: { fill: roleColor(String(link.role)), fontWeight: 800 },
-    labelBgStyle: { fill: "var(--surface)", stroke: roleColor(String(link.role)) },
-  }, positionsById));
+  const roleEdges: Edge[] = showAttemptRoleEdges.value
+    ? workspace.value.fragment_links.map((link) => dynamicEdge({
+      id: `attempt-role-${link.id}`,
+      source: attemptNodeKey,
+      target: fragmentNodeKey(link),
+      label: link.role,
+      animated: ["blocked_by", "refuted_by", "needs_revision"].includes(String(link.role)),
+      class: "problem-role-edge",
+      style: { stroke: roleColor(String(link.role)), strokeWidth: 2.1 },
+      labelStyle: { fill: roleColor(String(link.role)), fontWeight: 800 },
+      labelBgStyle: { fill: "var(--surface)", stroke: roleColor(String(link.role)) },
+    }, positionsById))
+    : [];
 
   const linkByFragment = new Map(workspace.value.fragment_links.map((link) => [link.fragment_id, link]));
-  const relationEdges: Edge[] = workspace.value.relations
-    .flatMap((relation) => {
+  const relationEdges: Edge[] = showMathRelationEdges.value
+    ? workspace.value.relations.flatMap((relation) => {
       const sourceLink = linkByFragment.get(relation.source_fragment_id);
       const targetLink = linkByFragment.get(relation.target_fragment_id);
       if (!sourceLink || !targetLink) return [];
@@ -460,11 +505,75 @@ function syncFlowElements() {
         style: { stroke: "#5d7fa8", strokeWidth: 1.8, strokeDasharray: "5 4" },
         labelBgStyle: { fill: "var(--surface)", stroke: "#5d7fa8" },
       } as Edge, positionsById)];
-    });
+    })
+    : [];
 
   nodes.value = generatedNodes;
   edges.value = [...roleEdges, ...relationEdges];
   syncSelectedDraft();
+}
+
+function savedOrDefault(nodeKey: string, fallback: { x: number; y: number }) {
+  const saved = workspace.value?.positions?.[nodeKey];
+  return saved ? { x: saved.x, y: saved.y } : fallback;
+}
+
+function toggleAttemptRoleEdges() {
+  showAttemptRoleEdges.value = !showAttemptRoleEdges.value;
+  syncFlowElements();
+}
+
+function toggleMathRelationEdges() {
+  showMathRelationEdges.value = !showMathRelationEdges.value;
+  syncFlowElements();
+}
+
+async function autoArrange() {
+  if (!workspace.value) return;
+  const arranged = arrangedGraphPositions();
+  nodes.value = nodes.value.map((node) => ({
+    ...node,
+    position: arranged[node.id] || node.position,
+  })) as Node[];
+  await saveLayout();
+  message.value = "Attempt graph auto-arranged.";
+}
+
+function arrangedGraphPositions() {
+  if (!workspace.value) return {};
+  const positions: Record<string, { x: number; y: number }> = {
+    [`attempt:${workspace.value.attempt.id}`]: { x: 460, y: 170 },
+  };
+  const grouped = groupedLinks();
+  for (const [role, links] of grouped.entries()) {
+    const column = roleColumn(role);
+    [...links]
+      .sort((left, right) => (left.fragment?.title || left.fragment_id).localeCompare(right.fragment?.title || right.fragment_id))
+      .forEach((link, index) => {
+        positions[fragmentNodeKey(link)] = { x: column.x, y: column.y + index * 142 };
+      });
+  }
+  return positions;
+}
+
+async function saveLayout(event?: NodeDragEvent) {
+  if (!workspace.value) return;
+  refreshDynamicHandles(event);
+  const positions: Record<string, { node_key: string; x: number; y: number }> = {};
+  nodes.value.forEach((node) => {
+    positions[node.id] = {
+      node_key: node.id,
+      x: node.position.x,
+      y: node.position.y,
+    };
+  });
+  try {
+    workspace.value = await api.updateAttemptGraphLayout(workspace.value.attempt.id, positions);
+    syncFlowElements();
+    message.value = "Layout saved.";
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : String(caught);
+  }
 }
 
 function groupedLinks() {

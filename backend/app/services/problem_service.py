@@ -7,6 +7,7 @@ from app.models.fragment import Fragment, Topic
 from app.models.problem import (
     Attempt,
     AttemptFragmentLink,
+    AttemptGraphNodePosition,
     ProblemFragmentLink,
     ProblemGraphNodePosition,
     ProblemTopicLink,
@@ -89,6 +90,7 @@ def update_problem(
 def delete_problem(db: Session, problem: ResearchProblem) -> None:
     attempt_ids = list(db.execute(select(Attempt.id).where(Attempt.problem_id == problem.id)).scalars())
     if attempt_ids:
+        db.execute(delete(AttemptGraphNodePosition).where(AttemptGraphNodePosition.attempt_id.in_(attempt_ids)))
         db.execute(delete(AttemptFragmentLink).where(AttemptFragmentLink.attempt_id.in_(attempt_ids)))
     db.execute(delete(Attempt).where(Attempt.problem_id == problem.id))
     db.execute(delete(ProblemGraphNodePosition).where(ProblemGraphNodePosition.problem_id == problem.id))

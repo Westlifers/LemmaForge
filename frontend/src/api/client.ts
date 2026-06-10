@@ -201,6 +201,13 @@ export const api = {
   getAttemptWorkspace(id: string) {
     return request<AttemptWorkspace>(`/api/attempts/${id}/workspace`);
   },
+  updateAttemptGraphLayout(id: string, positions: Record<string, { node_key: string; x: number; y: number }>) {
+    return request<AttemptWorkspace>(`/api/attempts/${id}/graph-layout`, {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify({ positions })
+    });
+  },
   updateAttempt(id: string, payload: Partial<Attempt>) {
     return request<Attempt>(`/api/attempts/${id}`, {
       method: "PATCH",

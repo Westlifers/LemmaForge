@@ -4595,6 +4595,10 @@ label,
   min-height: calc(100vh - 196px);
 }
 
+.problem-graph-shell.without-right-panel {
+  grid-template-columns: minmax(250px, 300px) minmax(0, 1fr);
+}
+
 .problem-overview-panel,
 .problem-right-panel {
   display: flex;
@@ -4700,6 +4704,7 @@ label,
 .problem-view-tabs {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   min-width: 0;
   padding: 9px;
@@ -4712,6 +4717,72 @@ label,
 
 .problem-view-tabs .spacer {
   flex: 1 1 auto;
+}
+
+.problem-edge-filter-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-solid) 76%, transparent);
+}
+
+.problem-edge-filter-group .button.compact {
+  min-height: 30px;
+  padding: 5px 8px;
+  border-color: transparent;
+  box-shadow: none;
+  font-size: 12px;
+}
+
+.problem-edge-filter-group .button.compact:not(.active) {
+  color: var(--text-muted);
+  opacity: 0.72;
+}
+
+.problem-graph-controls-panel {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 11;
+  display: grid;
+  gap: 10px;
+  width: min(292px, calc(100% - 28px));
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--surface-solid) 90%, transparent);
+  box-shadow: 0 18px 42px rgba(16, 31, 32, 0.14);
+  backdrop-filter: var(--blur);
+}
+
+.problem-graph-controls-panel > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.problem-graph-controls-panel strong {
+  display: block;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.problem-graph-controls-panel .problem-edge-filter-group {
+  width: 100%;
+}
+
+.problem-graph-controls-panel .problem-edge-filter-group .button {
+  flex: 1 1 120px;
+}
+
+.problem-graph-controls-panel > .button {
+  width: 100%;
 }
 
 .problem-graph-stage {
@@ -4998,6 +5069,32 @@ label,
   min-height: 112px;
 }
 
+.attempt-seed-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(8, 124, 118, 0.2);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent-soft) 64%, transparent);
+}
+
+.attempt-seed-panel strong,
+.attempt-seed-panel p {
+  flex: 1 0 100%;
+  margin: 0;
+}
+
+.attempt-seed-panel strong {
+  color: var(--accent-strong);
+  font-size: 13px;
+}
+
+.attempt-seed-panel p {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 .problem-attempt-modal > footer {
   padding: 14px 18px 18px;
   border-top: 1px solid var(--line);
@@ -5082,10 +5179,13 @@ label,
 }
 
 @media (max-width: 760px) {
-  .problem-workspace-topbar,
-  .problem-view-tabs {
+  .problem-workspace-topbar {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .problem-view-tabs {
+    align-items: stretch;
   }
 
   .problem-view-tabs .spacer {

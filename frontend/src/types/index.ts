@@ -252,6 +252,12 @@ export interface ProblemGraphNodePosition {
   y: number;
 }
 
+export interface AttemptGraphNodePosition {
+  node_key: string;
+  x: number;
+  y: number;
+}
+
 export interface AttemptFragmentLink {
   id: string;
   attempt_id: string;
@@ -306,6 +312,7 @@ export interface AttemptWorkspace {
   problem: ResearchProblem;
   fragment_links: AttemptFragmentLink[];
   relations: Relation[];
+  positions: Record<string, AttemptGraphNodePosition>;
 }
 
 export interface ProblemSuggestedFragmentRole {

@@ -103,6 +103,7 @@ class ProblemGraphNodePosition(Base):
 
 class Attempt(Base):
     __tablename__ = "attempts"
+    __mapper_args__ = {"confirm_deleted_rows": False}
 
     id: Mapped[str] = mapped_column(String(120), primary_key=True)
     problem_id: Mapped[str] = mapped_column(
@@ -126,6 +127,26 @@ class Attempt(Base):
         cascade="all, delete-orphan",
         order_by="AttemptFragmentLink.created_at",
     )
+    graph_positions: Mapped[list["AttemptGraphNodePosition"]] = relationship(
+        back_populates="attempt",
+        cascade="all, delete-orphan",
+    )
+
+
+class AttemptGraphNodePosition(Base):
+    __tablename__ = "attempt_graph_node_positions"
+
+    attempt_id: Mapped[str] = mapped_column(
+        String(120), ForeignKey("attempts.id", ondelete="CASCADE"), primary_key=True
+    )
+    node_key: Mapped[str] = mapped_column(String(180), primary_key=True)
+    x: Mapped[float] = mapped_column(nullable=False)
+    y: Mapped[float] = mapped_column(nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+    attempt: Mapped[Attempt] = relationship(back_populates="graph_positions")
 
 
 class AttemptFragmentLink(Base):

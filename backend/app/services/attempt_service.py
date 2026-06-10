@@ -4,12 +4,14 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.fragment import Fragment
-from app.models.problem import Attempt, AttemptFragmentLink, ResearchProblem
+from app.models.problem import Attempt, AttemptFragmentLink, AttemptGraphNodePosition, ResearchProblem
 from app.models.relation import Relation
 from app.schemas.problem import (
     AttemptCreate,
     AttemptFragmentLinkCreate,
     AttemptFragmentLinkUpdate,
+    AttemptGraphLayoutUpdate,
+    AttemptGraphNodePositionRead,
     AttemptUpdate,
     AttemptWorkspaceRead,
 )
@@ -62,6 +64,7 @@ def update_attempt(db: Session, attempt: Attempt, payload: AttemptUpdate) -> Att
 
 
 def delete_attempt(db: Session, attempt: Attempt) -> None:
+    db.execute(delete(AttemptGraphNodePosition).where(AttemptGraphNodePosition.attempt_id == attempt.id))
     db.execute(delete(AttemptFragmentLink).where(AttemptFragmentLink.attempt_id == attempt.id))
     db.delete(attempt)
     db.commit()
@@ -144,4 +147,43 @@ def get_attempt_workspace(db: Session, attempt: Attempt) -> AttemptWorkspaceRead
         problem=problem,
         fragment_links=fragment_links,
         relations=relations,
+        positions={
+            position.node_key: AttemptGraphNodePositionRead(
+                node_key=position.node_key,
+                x=position.x,
+                y=position.y,
+            )
+            for position in db.execute(
+                select(AttemptGraphNodePosition).where(AttemptGraphNodePosition.attempt_id == loaded.id)
+            ).scalars()
+        },
     )
+
+
+def update_attempt_graph_layout(
+    db: Session,
+    attempt: Attempt,
+    payload: AttemptGraphLayoutUpdate,
+) -> AttemptWorkspaceRead:
+    fragment_links = list_attempt_fragment_links(db, attempt.id)
+    allowed = {f"attempt:{attempt.id}"}
+    allowed.update(f"attempt_link:{link.id}" for link in fragment_links)
+    unknown = sorted(key for key in payload.positions if key not in allowed)
+    if unknown:
+        raise ValueError(f"Unknown attempt graph nodes: {', '.join(unknown)}")
+
+    for node_key, position in payload.positions.items():
+        row = db.get(AttemptGraphNodePosition, (attempt.id, node_key))
+        if row is None:
+            row = AttemptGraphNodePosition(
+                attempt_id=attempt.id,
+                node_key=node_key,
+                x=position.x,
+                y=position.y,
+            )
+            db.add(row)
+        else:
+            row.x = position.x
+            row.y = position.y
+    db.commit()
+    return get_attempt_workspace(db, attempt)

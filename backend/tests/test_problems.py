@@ -5,12 +5,21 @@ import time
 from sqlalchemy import select
 
 from app.models.fragment import Fragment, Topic
-from app.models.problem import Attempt, AttemptFragmentLink, ProblemFragmentLink, ProblemTopicLink, ResearchProblem
+from app.models.problem import (
+    Attempt,
+    AttemptFragmentLink,
+    AttemptGraphNodePosition,
+    ProblemFragmentLink,
+    ProblemTopicLink,
+    ResearchProblem,
+)
 from app.schemas.fragment import FragmentCreate, TopicCreate
 from app.schemas.problem import (
     AttemptCreate,
     AttemptFragmentLinkCreate,
     AttemptFragmentLinkUpdate,
+    AttemptGraphLayoutUpdate,
+    AttemptGraphNodePositionRead,
     AttemptUpdate,
     ProblemFragmentLinkCreate,
     ProblemFragmentLinkUpdate,
@@ -35,6 +44,7 @@ from app.services.attempt_service import (
     get_attempt_workspace,
     list_attempts_for_problem,
     remove_attempt_fragment_link,
+    update_attempt_graph_layout,
     update_attempt,
     update_attempt_fragment_link,
 )
@@ -300,12 +310,51 @@ def test_attempt_create_update_link_workspace_and_delete_keeps_fragments(db_sess
     assert workspace.problem.id == problem.id
     assert {item.fragment_id for item in workspace.fragment_links} == {fragment.id, produced.id}
 
+    saved_layout = update_attempt_graph_layout(
+        db,
+        attempt,
+        AttemptGraphLayoutUpdate(
+            positions={
+                f"attempt:{attempt.id}": AttemptGraphNodePositionRead(
+                    node_key=f"attempt:{attempt.id}",
+                    x=160,
+                    y=180,
+                ),
+                f"attempt_link:{link.id}": AttemptGraphNodePositionRead(
+                    node_key=f"attempt_link:{link.id}",
+                    x=420,
+                    y=180,
+                ),
+            }
+        ),
+    )
+    assert saved_layout.positions[f"attempt:{attempt.id}"].x == 160
+    assert saved_layout.positions[f"attempt_link:{link.id}"].y == 180
+    reloaded_workspace = get_attempt_workspace(db, attempt)
+    assert reloaded_workspace.positions[f"attempt:{attempt.id}"].x == 160
+
+    with pytest.raises(ValueError, match="Unknown attempt graph nodes"):
+        update_attempt_graph_layout(
+            db,
+            attempt,
+            AttemptGraphLayoutUpdate(
+                positions={
+                    "attempt_link:missing": AttemptGraphNodePositionRead(
+                        node_key="attempt_link:missing",
+                        x=0,
+                        y=0,
+                    )
+                }
+            ),
+        )
+
     remove_attempt_fragment_link(db, updated_link)
     assert db.get(Fragment, fragment.id) is not None
     delete_attempt(db, attempt)
     assert db.get(Attempt, attempt.id) is None
     assert db.get(Fragment, produced.id) is not None
     assert db.execute(select(AttemptFragmentLink)).scalars().all() == []
+    assert db.execute(select(AttemptGraphNodePosition)).scalars().all() == []
 
 
 def test_deleting_problem_deletes_attempts_but_keeps_fragments(db_session):
@@ -322,6 +371,19 @@ def test_deleting_problem_deletes_attempts_but_keeps_fragments(db_session):
         attempt,
         AttemptFragmentLinkCreate(fragment_id=fragment.id, role="input"),
     )
+    update_attempt_graph_layout(
+        db,
+        attempt,
+        AttemptGraphLayoutUpdate(
+            positions={
+                f"attempt:{attempt.id}": AttemptGraphNodePositionRead(
+                    node_key=f"attempt:{attempt.id}",
+                    x=10,
+                    y=20,
+                )
+            }
+        ),
+    )
 
     delete_problem(db, problem)
 
@@ -329,6 +391,7 @@ def test_deleting_problem_deletes_attempts_but_keeps_fragments(db_session):
     assert db.get(Attempt, attempt.id) is None
     assert db.get(Fragment, fragment.id) is not None
     assert db.execute(select(AttemptFragmentLink)).scalars().all() == []
+    assert db.execute(select(AttemptGraphNodePosition)).scalars().all() == []
 
 
 def test_problem_summary_suggestion_is_advisory_and_validated(db_session, monkeypatch):

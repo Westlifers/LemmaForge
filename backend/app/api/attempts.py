@@ -10,6 +10,7 @@ from app.schemas.problem import (
     AttemptFragmentLinkCreate,
     AttemptFragmentLinkRead,
     AttemptFragmentLinkUpdate,
+    AttemptGraphLayoutUpdate,
     AttemptRead,
     AttemptUpdate,
     AttemptWorkspaceRead,
@@ -24,6 +25,7 @@ from app.services.attempt_service import (
     list_attempts_for_problem,
     remove_attempt_fragment_link,
     update_attempt,
+    update_attempt_graph_layout,
     update_attempt_fragment_link,
 )
 from app.services.problem_service import get_problem
@@ -61,6 +63,21 @@ def api_get_attempt_workspace(attempt_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Attempt not found")
     try:
         return get_attempt_workspace(db, attempt)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.patch("/api/attempts/{attempt_id}/graph-layout", response_model=AttemptWorkspaceRead)
+def api_update_attempt_graph_layout(
+    attempt_id: str,
+    payload: AttemptGraphLayoutUpdate,
+    db: Session = Depends(get_db),
+):
+    attempt = get_attempt(db, attempt_id)
+    if attempt is None:
+        raise HTTPException(status_code=404, detail="Attempt not found")
+    try:
+        return update_attempt_graph_layout(db, attempt, payload)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

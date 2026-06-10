@@ -15,7 +15,7 @@
         </button>
         <button class="button primary" type="button" @click="attemptModalOpen = true">
           <Plus :size="16" aria-hidden="true" />
-          New Attempt
+          New Attempt{{ selectedProblemLinkIds.length ? ` (${selectedProblemLinkIds.length})` : "" }}
         </button>
         <button class="button subtle" type="button" @click="load">
           <RefreshCw :size="16" aria-hidden="true" />
@@ -27,7 +27,7 @@
     <p v-if="message" class="topic-floating-message success-text">{{ message }}</p>
     <p v-if="error" class="topic-floating-message error-text">{{ error }}</p>
 
-    <section v-if="workspace && problem" class="problem-graph-shell">
+    <section v-if="workspace && problem" class="problem-graph-shell" :class="{ 'without-right-panel': !detailsPanelOpen }">
       <aside class="problem-overview-panel">
         <header>
           <div>
@@ -70,6 +70,14 @@
             Table View
           </button>
           <span class="spacer"></span>
+          <button v-if="viewMode === 'graph'" class="button subtle" type="button" @click="graphControlsOpen = !graphControlsOpen">
+            <SlidersHorizontal :size="16" aria-hidden="true" />
+            Graph Controls
+          </button>
+          <button class="button subtle" :class="{ active: detailsPanelOpen }" type="button" @click="detailsPanelOpen = !detailsPanelOpen">
+            <PanelRight :size="16" aria-hidden="true" />
+            Details
+          </button>
           <button class="button subtle" type="button" @click="addDrawerOpen = true">
             <Library :size="16" aria-hidden="true" />
             Add Fragments
@@ -78,13 +86,48 @@
             <Tags :size="16" aria-hidden="true" />
             Topics
           </button>
-          <button class="button subtle" type="button" @click="autoArrange">
-            <GitBranch :size="16" aria-hidden="true" />
-            Auto Arrange
-          </button>
         </div>
 
         <section v-if="viewMode === 'graph'" class="problem-graph-stage">
+          <Transition name="popover">
+            <div v-if="graphControlsOpen" class="problem-graph-controls-panel">
+              <header>
+                <div>
+                  <span class="eyebrow">Graph Controls</span>
+                  <strong>Visibility & layout</strong>
+                </div>
+                <button class="icon-button" type="button" aria-label="Close graph controls" @click="graphControlsOpen = false">
+                  <X :size="15" aria-hidden="true" />
+                </button>
+              </header>
+              <div class="problem-edge-filter-group" aria-label="Graph edge visibility">
+                <button
+                  class="button subtle compact"
+                  :class="{ active: showProblemRoleEdges }"
+                  type="button"
+                  @click="toggleProblemRoleEdges"
+                >
+                  <Eye v-if="showProblemRoleEdges" :size="15" aria-hidden="true" />
+                  <EyeOff v-else :size="15" aria-hidden="true" />
+                  Role links
+                </button>
+                <button
+                  class="button subtle compact"
+                  :class="{ active: showMathRelationEdges }"
+                  type="button"
+                  @click="toggleMathRelationEdges"
+                >
+                  <Eye v-if="showMathRelationEdges" :size="15" aria-hidden="true" />
+                  <EyeOff v-else :size="15" aria-hidden="true" />
+                  Math relations
+                </button>
+              </div>
+              <button class="button primary" type="button" @click="autoArrange">
+                <GitBranch :size="16" aria-hidden="true" />
+                Auto Arrange
+              </button>
+            </div>
+          </Transition>
           <VueFlow
             v-model:nodes="nodes"
             v-model:edges="edges"
@@ -146,6 +189,11 @@
             </label>
             <footer class="action-row">
               <button class="button primary" type="button" @click="saveSelectedLink">Save</button>
+              <button class="button subtle" type="button" :class="{ active: selectedProblemLinkSet.has(selectedLink.id) }" @click="toggleProblemLinkSelection(selectedLink.id)">
+                <CheckSquare v-if="selectedProblemLinkSet.has(selectedLink.id)" :size="16" aria-hidden="true" />
+                <Square v-else :size="16" aria-hidden="true" />
+                Input
+              </button>
               <RouterLink class="button subtle" :to="`/fragments/${selectedLink.fragment_id}?from=/problems/${problem.id}`">Open</RouterLink>
               <button class="button danger" type="button" @click="removeFragmentLink(selectedLink.id)">Remove</button>
             </footer>
@@ -162,8 +210,14 @@
         </section>
 
         <section v-else class="plain-section">
-          <DashboardTable :headers="['Fragment', 'Role', 'Status', 'Note']">
+          <DashboardTable :headers="['Use', 'Fragment', 'Role', 'Status', 'Note']">
             <tr v-for="link in workspace.fragment_links" :key="link.id">
+              <td>
+                <button class="icon-button" type="button" :aria-label="`Use ${link.fragment?.title || link.fragment_id} in new attempt`" @click="toggleProblemLinkSelection(link.id)">
+                  <CheckSquare v-if="selectedProblemLinkSet.has(link.id)" :size="15" aria-hidden="true" />
+                  <Square v-else :size="15" aria-hidden="true" />
+                </button>
+              </td>
               <td>{{ link.fragment?.title || link.fragment_id }}</td>
               <td>{{ link.role }}</td>
               <td>{{ link.fragment?.status }}</td>
@@ -173,7 +227,7 @@
         </section>
       </main>
 
-      <aside class="problem-right-panel">
+      <aside v-if="detailsPanelOpen" class="problem-right-panel">
         <section class="plain-section">
           <header class="section-header">
             <div>
@@ -352,6 +406,13 @@
             </button>
           </header>
           <section class="problem-attempt-modal-body">
+            <div v-if="selectedProblemLinks.length" class="attempt-seed-panel">
+              <strong>{{ selectedProblemLinks.length }} input fragments selected</strong>
+              <p>These problem fragments will be linked to the new attempt as inputs.</p>
+              <span v-for="link in selectedProblemLinks" :key="link.id" class="chip" data-chip="topic">
+                {{ link.fragment?.title || link.fragment_id }}
+              </span>
+            </div>
             <label>
               Title
               <input v-model="attemptDraft.title" placeholder="e.g. Test the one-object quantale case" />
@@ -387,16 +448,22 @@ import "@vue-flow/core/dist/theme-default.css";
 import {
   BookOpen,
   Box,
+  CheckSquare,
+  Eye,
+  EyeOff,
   FileQuestion,
   GitBranch,
   Library,
   Lightbulb,
   ListChecks,
   Network,
+  PanelRight,
   Plus,
   RefreshCw,
   Save,
   Sigma,
+  SlidersHorizontal,
+  Square,
   Sparkles,
   Table2,
   Tags,
@@ -444,6 +511,11 @@ const aiError = ref("");
 const proposal = ref<ProblemSummaryProposal | null>(null);
 const currentProblemJobId = ref("");
 const fragmentSearch = ref("");
+const selectedProblemLinkIds = ref<string[]>([]);
+const showProblemRoleEdges = ref(true);
+const showMathRelationEdges = ref(true);
+const graphControlsOpen = ref(false);
+const detailsPanelOpen = ref(true);
 let problemJobPollTimer: number | undefined;
 
 const draft = reactive({
@@ -464,6 +536,10 @@ const graphHandlePositions = [Position.Left, Position.Right, Position.Top, Posit
 
 const problem = computed(() => workspace.value?.problem || null);
 const selectedLink = computed(() => workspace.value?.fragment_links.find((link) => link.id === selectedLinkId.value) || null);
+const selectedProblemLinkSet = computed(() => new Set(selectedProblemLinkIds.value));
+const selectedProblemLinks = computed(
+  () => workspace.value?.fragment_links.filter((link) => selectedProblemLinkSet.value.has(link.id)) || []
+);
 const linkedFragmentIds = computed(() => new Set(workspace.value?.fragment_links.map((link) => link.fragment_id) || []));
 const linkedTopicIds = computed(() => new Set(workspace.value?.topic_links.map((link) => link.topic_id) || []));
 const availableFragments = computed(() => allFragments.value.filter((fragment) => !linkedFragmentIds.value.has(fragment.id)));
@@ -492,6 +568,7 @@ async function load() {
   workspace.value = workspaceResult;
   allFragments.value = fragmentsResult;
   topics.value = topicsResult;
+  pruneProblemLinkSelection();
   syncDraft(workspaceResult.problem);
   syncFlowElements();
 }
@@ -544,33 +621,36 @@ function syncFlowElements() {
     });
   }
   const positionsById = positionsFromNodes(generatedNodes);
-  const roleEdges: Edge[] = workspace.value.fragment_links.map((link) => dynamicEdge({
-    id: `role-${link.id}`,
-    source: problemNodeKey,
-    target: fragmentNodeKey(link),
-    label: link.role,
-    animated: ["gap", "main_question"].includes(String(link.role)),
-    class: "problem-role-edge",
-    style: { stroke: roleColor(String(link.role)), strokeWidth: 2.1 },
-    labelStyle: { fill: roleColor(String(link.role)), fontWeight: 800 },
-    labelBgStyle: { fill: "var(--surface)", stroke: roleColor(String(link.role)) },
-  }, positionsById));
+  const roleEdges: Edge[] = showProblemRoleEdges.value
+    ? workspace.value.fragment_links.map((link) => dynamicEdge({
+        id: `role-${link.id}`,
+        source: problemNodeKey,
+        target: fragmentNodeKey(link),
+        label: link.role,
+        animated: ["gap", "main_question"].includes(String(link.role)),
+        class: "problem-role-edge",
+        style: { stroke: roleColor(String(link.role)), strokeWidth: 2.1 },
+        labelStyle: { fill: roleColor(String(link.role)), fontWeight: 800 },
+        labelBgStyle: { fill: "var(--surface)", stroke: roleColor(String(link.role)) },
+      }, positionsById))
+    : [];
   const linkByFragment = new Map(workspace.value.fragment_links.map((link) => [link.fragment_id, link]));
-  const relationEdges: Edge[] = workspace.value.relations
-    .flatMap((relation) => {
-      const sourceLink = linkByFragment.get(relation.source_fragment_id);
-      const targetLink = linkByFragment.get(relation.target_fragment_id);
-      if (!sourceLink || !targetLink) return [];
-      return [dynamicEdge({
-        id: relation.id,
-        source: fragmentNodeKey(sourceLink),
-        target: fragmentNodeKey(targetLink),
-        label: relation.relation_kind,
-        class: "problem-math-edge",
-        style: { stroke: "#5d7fa8", strokeWidth: 1.8, strokeDasharray: "5 4" },
-        labelBgStyle: { fill: "var(--surface)", stroke: "#5d7fa8" },
-      } as Edge, positionsById)];
-    });
+  const relationEdges: Edge[] = showMathRelationEdges.value
+    ? workspace.value.relations.flatMap((relation) => {
+        const sourceLink = linkByFragment.get(relation.source_fragment_id);
+        const targetLink = linkByFragment.get(relation.target_fragment_id);
+        if (!sourceLink || !targetLink) return [];
+        return [dynamicEdge({
+          id: relation.id,
+          source: fragmentNodeKey(sourceLink),
+          target: fragmentNodeKey(targetLink),
+          label: relation.relation_kind,
+          class: "problem-math-edge",
+          style: { stroke: "#5d7fa8", strokeWidth: 1.8, strokeDasharray: "5 4" },
+          labelBgStyle: { fill: "var(--surface)", stroke: "#5d7fa8" },
+        } as Edge, positionsById)];
+      })
+    : [];
   nodes.value = generatedNodes;
   edges.value = [...roleEdges, ...relationEdges];
   void nextTick(() => syncSelectedDraft());
@@ -625,6 +705,29 @@ function syncSelectedDraft() {
   if (!selectedLink.value) return;
   selectedLinkDraft.role = selectedLink.value.role as ProblemFragmentRole;
   selectedLinkDraft.note = selectedLink.value.note || "";
+}
+
+function toggleProblemRoleEdges() {
+  showProblemRoleEdges.value = !showProblemRoleEdges.value;
+  syncFlowElements();
+}
+
+function toggleMathRelationEdges() {
+  showMathRelationEdges.value = !showMathRelationEdges.value;
+  syncFlowElements();
+}
+
+function toggleProblemLinkSelection(linkId: string) {
+  if (selectedProblemLinkSet.value.has(linkId)) {
+    selectedProblemLinkIds.value = selectedProblemLinkIds.value.filter((id) => id !== linkId);
+  } else {
+    selectedProblemLinkIds.value = [...selectedProblemLinkIds.value, linkId];
+  }
+}
+
+function pruneProblemLinkSelection() {
+  const valid = new Set(workspace.value?.fragment_links.map((link) => link.id) || []);
+  selectedProblemLinkIds.value = selectedProblemLinkIds.value.filter((id) => valid.has(id));
 }
 
 async function saveSelectedLink() {
@@ -749,8 +852,39 @@ function graphHandleId(type: "source" | "target", position: Position) {
 }
 
 async function autoArrange() {
-  syncFlowElements();
+  if (!workspace.value) return;
+  const arranged = arrangedGraphPositions();
+  const nextNodes: Node[] = [];
+  nodes.value.forEach((node) => {
+    nextNodes.push({
+      ...node,
+      position: arranged[node.id] || node.position,
+    } as Node);
+  });
+  nodes.value = nextNodes;
   await saveLayout();
+  message.value = "Graph auto-arranged.";
+}
+
+function arrangedGraphPositions() {
+  const positions: Record<string, { x: number; y: number }> = {};
+  if (!workspace.value) return positions;
+  const problemNodeKey = `problem:${workspace.value.problem.id}`;
+  positions[problemNodeKey] = { x: 460, y: 210 };
+  const groups = groupedLinks();
+  for (const [role, links] of groups.entries()) {
+    const column = roleColumn(role);
+    links
+      .slice()
+      .sort((left, right) => (left.fragment?.title || left.fragment_id).localeCompare(right.fragment?.title || right.fragment_id))
+      .forEach((link, index) => {
+        positions[fragmentNodeKey(link)] = {
+          x: column.x,
+          y: column.y + index * 142,
+        };
+      });
+  }
+  return positions;
 }
 
 async function saveProblem() {
@@ -821,10 +955,18 @@ async function createAttempt() {
     expected_outcome: attemptDraft.expected_outcome || null,
     status: "planned",
   });
+  for (const link of selectedProblemLinks.value) {
+    await api.addAttemptFragment(attempt.id, {
+      fragment_id: link.fragment_id,
+      role: "input",
+      note: link.note || null,
+    });
+  }
   attemptModalOpen.value = false;
   attemptDraft.title = "";
   attemptDraft.strategy = "";
   attemptDraft.expected_outcome = "";
+  selectedProblemLinkIds.value = [];
   await load();
   await router.push(`/attempts/${attempt.id}`);
 }

@@ -107,8 +107,21 @@ def upgrade() -> None:
     op.create_index("ix_attempt_fragment_links_fragment_id", "attempt_fragment_links", ["fragment_id"])
     op.create_index("ix_attempt_fragment_links_role", "attempt_fragment_links", ["role"])
 
+    op.create_table(
+        "attempt_graph_node_positions",
+        sa.Column("attempt_id", sa.String(length=120), nullable=False),
+        sa.Column("node_key", sa.String(length=180), nullable=False),
+        sa.Column("x", sa.Float(), nullable=False),
+        sa.Column("y", sa.Float(), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
+        sa.ForeignKeyConstraint(["attempt_id"], ["attempts.id"], ondelete="CASCADE"),
+        sa.PrimaryKeyConstraint("attempt_id", "node_key"),
+    )
+
 
 def downgrade() -> None:
+    op.drop_table("attempt_graph_node_positions")
+
     op.drop_index("ix_attempt_fragment_links_role", table_name="attempt_fragment_links")
     op.drop_index("ix_attempt_fragment_links_fragment_id", table_name="attempt_fragment_links")
     op.drop_index("ix_attempt_fragment_links_attempt_id", table_name="attempt_fragment_links")

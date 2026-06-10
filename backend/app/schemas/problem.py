@@ -103,6 +103,16 @@ class ProblemGraphLayoutUpdate(BaseModel):
     positions: dict[str, ProblemGraphNodePositionRead]
 
 
+class AttemptGraphNodePositionRead(BaseModel):
+    node_key: str
+    x: float
+    y: float
+
+
+class AttemptGraphLayoutUpdate(BaseModel):
+    positions: dict[str, AttemptGraphNodePositionRead]
+
+
 class AttemptCreate(BaseModel):
     title: str = Field(min_length=1, max_length=300)
     status: AttemptStatus = "planned"
@@ -194,6 +204,7 @@ class AttemptWorkspaceRead(BaseModel):
     problem: ResearchProblemRead
     fragment_links: list[AttemptFragmentLinkRead] = Field(default_factory=list)
     relations: list[RelationRead] = Field(default_factory=list)
+    positions: dict[str, AttemptGraphNodePositionRead] = Field(default_factory=dict)
 
 
 class ProblemSuggestedFragmentRole(BaseModel):
