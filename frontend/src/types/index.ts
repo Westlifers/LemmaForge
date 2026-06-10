@@ -200,6 +200,156 @@ export interface Topic {
   updated_at: string;
 }
 
+export type ProblemStatus = "open" | "active" | "blocked" | "partially_solved" | "solved" | "abandoned";
+export type AttemptStatus = "planned" | "in_progress" | "succeeded" | "failed" | "blocked" | "superseded";
+
+export type ProblemFragmentRole =
+  | "main_question"
+  | "active_definition"
+  | "candidate_definition"
+  | "claim"
+  | "proof"
+  | "example"
+  | "counterexample"
+  | "background"
+  | "source_note"
+  | "gap"
+  | "result"
+  | "notation"
+  | "other";
+
+export type AttemptFragmentRole =
+  | "input"
+  | "assumption"
+  | "produced"
+  | "blocked_by"
+  | "motivated"
+  | "refuted_by"
+  | "needs_revision"
+  | "other";
+
+export interface ProblemTopicLink {
+  id: string;
+  problem_id: string;
+  topic_id: string;
+  created_at: string;
+  topic: Topic | null;
+}
+
+export interface ProblemFragmentLink {
+  id: string;
+  problem_id: string;
+  fragment_id: string;
+  role: ProblemFragmentRole | string;
+  note: string | null;
+  created_at: string;
+  fragment: Fragment | null;
+}
+
+export interface ProblemGraphNodePosition {
+  node_key: string;
+  x: number;
+  y: number;
+}
+
+export interface AttemptFragmentLink {
+  id: string;
+  attempt_id: string;
+  fragment_id: string;
+  role: AttemptFragmentRole | string;
+  note: string | null;
+  created_at: string;
+  fragment: Fragment | null;
+}
+
+export interface Attempt {
+  id: string;
+  problem_id: string;
+  title: string;
+  status: AttemptStatus;
+  strategy: string;
+  expected_outcome: string | null;
+  result_summary: string | null;
+  failure_reason: string | null;
+  next_step: string | null;
+  created_at: string;
+  updated_at: string;
+  fragment_links: AttemptFragmentLink[];
+}
+
+export interface ResearchProblem {
+  id: string;
+  title: string;
+  status: ProblemStatus;
+  objective: string;
+  current_formulation: string | null;
+  motivation: string | null;
+  why_it_matters: string | null;
+  created_at: string;
+  updated_at: string;
+  topic_links: ProblemTopicLink[];
+  fragment_links: ProblemFragmentLink[];
+  attempts: Attempt[];
+}
+
+export interface ProblemWorkspace {
+  problem: ResearchProblem;
+  topic_links: ProblemTopicLink[];
+  fragment_links: ProblemFragmentLink[];
+  relations: Relation[];
+  attempts: Attempt[];
+  positions: Record<string, ProblemGraphNodePosition>;
+}
+
+export interface AttemptWorkspace {
+  attempt: Attempt;
+  problem: ResearchProblem;
+  fragment_links: AttemptFragmentLink[];
+  relations: Relation[];
+}
+
+export interface ProblemSuggestedFragmentRole {
+  fragment_id: string;
+  role: ProblemFragmentRole;
+  note: string | null;
+}
+
+export interface ProblemSummaryProposal {
+  title: string;
+  objective: string;
+  current_formulation: string | null;
+  motivation: string | null;
+  why_it_matters: string | null;
+  suggested_fragment_roles: ProblemSuggestedFragmentRole[];
+  open_gaps: string[];
+  warnings: string[];
+}
+
+export interface ProblemSummaryRequest {
+  topic_ids: string[];
+  fragment_ids: string[];
+  title_hint?: string | null;
+  objective_hint?: string | null;
+  timeout_seconds?: number;
+}
+
+export interface ProblemSummaryResult {
+  available: boolean;
+  proposal: ProblemSummaryProposal | null;
+  error: string | null;
+  logs: string[];
+}
+
+export interface ProblemSummaryJob {
+  job_id: string;
+  status: "queued" | "running" | "succeeded" | "failed";
+  logs: string[];
+  result: ProblemSummaryResult | null;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface TopicGraphNodePosition {
   fragment_id: string;
   x: number;
@@ -470,3 +620,48 @@ export const fragmentStatuses: FragmentStatus[] = [
 
 export const unacceptedFragmentStatuses: FragmentStatus[] = ["draft", "raw", "candidate"];
 export const acceptedFragmentStatuses: FragmentStatus[] = ["working", "stable", "superseded"];
+
+export const problemStatuses: ProblemStatus[] = [
+  "open",
+  "active",
+  "blocked",
+  "partially_solved",
+  "solved",
+  "abandoned"
+];
+
+export const problemFragmentRoles: ProblemFragmentRole[] = [
+  "main_question",
+  "active_definition",
+  "candidate_definition",
+  "claim",
+  "proof",
+  "example",
+  "counterexample",
+  "background",
+  "source_note",
+  "gap",
+  "result",
+  "notation",
+  "other"
+];
+
+export const attemptStatuses: AttemptStatus[] = [
+  "planned",
+  "in_progress",
+  "succeeded",
+  "failed",
+  "blocked",
+  "superseded"
+];
+
+export const attemptFragmentRoles: AttemptFragmentRole[] = [
+  "input",
+  "assumption",
+  "produced",
+  "blocked_by",
+  "motivated",
+  "refuted_by",
+  "needs_revision",
+  "other"
+];

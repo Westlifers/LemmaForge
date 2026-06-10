@@ -4,6 +4,9 @@ import InboxImport from "./pages/InboxImport.vue";
 import FragmentList from "./pages/FragmentList.vue";
 import FragmentDetail from "./pages/FragmentDetail.vue";
 import ContextPackBuilder from "./pages/ContextPackBuilder.vue";
+import ProblemList from "./pages/ProblemList.vue";
+import ProblemDetail from "./pages/ProblemDetail.vue";
+import AttemptDetail from "./pages/AttemptDetail.vue";
 import TopicWorkspace from "./pages/TopicWorkspace.vue";
 import TopicDetail from "./pages/TopicDetail.vue";
 import ZoteroSettings from "./pages/ZoteroSettings.vue";
@@ -22,6 +25,9 @@ const router = createRouter({
     { path: "/rejected", name: "rejected", component: RejectedFragments },
     { path: "/fragments", name: "fragments", component: FragmentList },
     { path: "/fragments/:id", name: "fragment-detail", component: FragmentDetail, props: true },
+    { path: "/problems", name: "problems", component: ProblemList },
+    { path: "/problems/:id", name: "problem-detail", component: ProblemDetail, props: true },
+    { path: "/attempts/:id", name: "attempt-detail", component: AttemptDetail, props: true },
     { path: "/topics", name: "topics", component: TopicWorkspace },
     { path: "/topics/:id", name: "topic-detail", component: TopicDetail, props: true },
     { path: "/context-packs", name: "context-packs", component: ContextPackBuilder },

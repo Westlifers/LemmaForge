@@ -22,6 +22,10 @@
             <Library :size="18" aria-hidden="true" />
             Fragments
           </RouterLink>
+          <RouterLink to="/problems">
+            <Target :size="18" aria-hidden="true" />
+            Problems
+          </RouterLink>
           <RouterLink to="/topics">
             <Network :size="18" aria-hidden="true" />
             Topics
@@ -182,6 +186,7 @@ import {
   SlidersHorizontal,
   SquareTerminal,
   Sun,
+  Target,
 } from "lucide-vue-next";
 
 const route = useRoute();
@@ -196,6 +201,9 @@ const routeTitles: Record<string, string> = {
   rejected: "Rejected Fragments",
   fragments: "Fragment Library",
   "fragment-detail": "Fragment Detail",
+  problems: "Problems",
+  "problem-detail": "Problem Workspace",
+  "attempt-detail": "Attempt Workspace",
   topics: "Topic Workspace",
   "topic-detail": "Topic Workspace",
   "context-packs": "Context Packs",

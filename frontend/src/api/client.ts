@@ -6,6 +6,11 @@ import type {
   AIExtractResult,
   AIExtractJob,
   AppHealth,
+  Attempt,
+  AttemptFragmentLink,
+  AttemptFragmentRole,
+  AttemptStatus,
+  AttemptWorkspace,
   ContextPack,
   ContextPackItemInput,
   ContextPackSuggestJob,
@@ -17,8 +22,17 @@ import type {
   ImportBatch,
   ImportCommitResult,
   ImportPreview,
+  ProblemFragmentLink,
+  ProblemFragmentRole,
+  ProblemStatus,
+  ProblemSummaryRequest,
+  ProblemSummaryResult,
+  ProblemSummaryJob,
+  ProblemTopicLink,
+  ProblemWorkspace,
   Relation,
   ResearchPatch,
+  ResearchProblem,
   Source,
   SourcePointer,
   TopicGraph,
@@ -52,6 +66,11 @@ export interface FragmentFilters {
   source_citekey?: string;
 }
 
+export interface ProblemFilters {
+  search?: string;
+  status?: string;
+}
+
 function queryString(filters: FragmentFilters): string {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
@@ -67,6 +86,150 @@ export const api = {
   },
   listFragments(filters: FragmentFilters = {}) {
     return request<Fragment[]>(`/api/fragments${queryString(filters)}`);
+  },
+  listProblems(filters: ProblemFilters = {}) {
+    return request<ResearchProblem[]>(`/api/problems${queryString(filters)}`);
+  },
+  createProblem(payload: {
+    title: string;
+    status?: ProblemStatus;
+    objective: string;
+    current_formulation?: string | null;
+    motivation?: string | null;
+    why_it_matters?: string | null;
+  }) {
+    return request<ResearchProblem>("/api/problems", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload)
+    });
+  },
+  getProblem(id: string) {
+    return request<ResearchProblem>(`/api/problems/${id}`);
+  },
+  getProblemWorkspace(id: string) {
+    return request<ProblemWorkspace>(`/api/problems/${id}/workspace`);
+  },
+  updateProblemGraphLayout(id: string, positions: Record<string, { node_key: string; x: number; y: number }>) {
+    return request<ProblemWorkspace>(`/api/problems/${id}/graph-layout`, {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify({ positions })
+    });
+  },
+  updateProblem(id: string, payload: Partial<ResearchProblem>) {
+    return request<ResearchProblem>(`/api/problems/${id}`, {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload)
+    });
+  },
+  deleteProblem(id: string) {
+    return request<void>(`/api/problems/${id}`, { method: "DELETE" });
+  },
+  listProblemTopics(problemId: string) {
+    return request<ProblemTopicLink[]>(`/api/problems/${problemId}/topics`);
+  },
+  addProblemTopic(problemId: string, topic_id: string) {
+    return request<ProblemTopicLink>(`/api/problems/${problemId}/topics`, {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({ topic_id })
+    });
+  },
+  removeProblemTopic(problemId: string, topicId: string) {
+    return request<void>(`/api/problems/${problemId}/topics/${topicId}`, { method: "DELETE" });
+  },
+  listProblemFragments(problemId: string) {
+    return request<ProblemFragmentLink[]>(`/api/problems/${problemId}/fragments`);
+  },
+  addProblemFragment(problemId: string, payload: { fragment_id: string; role: ProblemFragmentRole; note?: string | null }) {
+    return request<ProblemFragmentLink>(`/api/problems/${problemId}/fragments`, {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload)
+    });
+  },
+  updateProblemFragment(problemId: string, linkId: string, payload: { role?: ProblemFragmentRole; note?: string | null }) {
+    return request<ProblemFragmentLink>(`/api/problems/${problemId}/fragments/${linkId}`, {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload)
+    });
+  },
+  removeProblemFragment(problemId: string, linkId: string) {
+    return request<void>(`/api/problems/${problemId}/fragments/${linkId}`, { method: "DELETE" });
+  },
+  suggestProblemSummary(payload: ProblemSummaryRequest) {
+    return request<ProblemSummaryResult>("/api/problems/ai/summarize", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload)
+    });
+  },
+  startProblemSummaryJob(payload: ProblemSummaryRequest) {
+    return request<ProblemSummaryJob>("/api/problems/ai/summary-jobs", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload)
+    });
+  },
+  getProblemSummaryJob(jobId: string) {
+    return request<ProblemSummaryJob>(`/api/problems/ai/summary-jobs/${jobId}`);
+  },
+  listProblemAttempts(problemId: string) {
+    return request<Attempt[]>(`/api/problems/${problemId}/attempts`);
+  },
+  createAttempt(problemId: string, payload: {
+    title: string;
+    status?: AttemptStatus;
+    strategy: string;
+    expected_outcome?: string | null;
+    result_summary?: string | null;
+    failure_reason?: string | null;
+    next_step?: string | null;
+  }) {
+    return request<Attempt>(`/api/problems/${problemId}/attempts`, {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload)
+    });
+  },
+  getAttempt(id: string) {
+    return request<Attempt>(`/api/attempts/${id}`);
+  },
+  getAttemptWorkspace(id: string) {
+    return request<AttemptWorkspace>(`/api/attempts/${id}/workspace`);
+  },
+  updateAttempt(id: string, payload: Partial<Attempt>) {
+    return request<Attempt>(`/api/attempts/${id}`, {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload)
+    });
+  },
+  deleteAttempt(id: string) {
+    return request<void>(`/api/attempts/${id}`, { method: "DELETE" });
+  },
+  listAttemptFragments(attemptId: string) {
+    return request<AttemptFragmentLink[]>(`/api/attempts/${attemptId}/fragments`);
+  },
+  addAttemptFragment(attemptId: string, payload: { fragment_id: string; role: AttemptFragmentRole; note?: string | null }) {
+    return request<AttemptFragmentLink>(`/api/attempts/${attemptId}/fragments`, {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload)
+    });
+  },
+  updateAttemptFragment(attemptId: string, linkId: string, payload: { role?: AttemptFragmentRole; note?: string | null }) {
+    return request<AttemptFragmentLink>(`/api/attempts/${attemptId}/fragments/${linkId}`, {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload)
+    });
+  },
+  removeAttemptFragment(attemptId: string, linkId: string) {
+    return request<void>(`/api/attempts/${attemptId}/fragments/${linkId}`, { method: "DELETE" });
   },
   createFragment(payload: Partial<Fragment> & { source_citekey?: string | null; source_locator?: string | null }) {
     return request<Fragment>("/api/fragments", {

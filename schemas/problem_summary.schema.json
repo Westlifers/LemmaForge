@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProblemSummaryProposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "title",
+    "objective",
+    "current_formulation",
+    "motivation",
+    "why_it_matters",
+    "suggested_fragment_roles",
+    "open_gaps",
+    "warnings"
+  ],
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300
+    },
+    "objective": {
+      "type": "string",
+      "minLength": 1
+    },
+    "current_formulation": {
+      "type": ["string", "null"]
+    },
+    "motivation": {
+      "type": ["string", "null"]
+    },
+    "why_it_matters": {
+      "type": ["string", "null"]
+    },
+    "suggested_fragment_roles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["fragment_id", "role", "note"],
+        "properties": {
+          "fragment_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "main_question",
+              "active_definition",
+              "candidate_definition",
+              "claim",
+              "proof",
+              "example",
+              "counterexample",
+              "background",
+              "source_note",
+              "gap",
+              "result",
+              "notation",
+              "other"
+            ]
+          },
+          "note": {
+            "type": ["string", "null"]
+          }
+        }
+      }
+    },
+    "open_gaps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import agent, context_packs, fragments, import_patch, relations, sources, topics, zotero
+from app.api import agent, attempts, context_packs, fragments, import_patch, problems, relations, sources, topics, zotero
 from app.config import ensure_local_directories, get_settings
 from app.db import init_db
 
@@ -28,6 +28,8 @@ app.include_router(import_patch.router)
 app.include_router(context_packs.router)
 app.include_router(zotero.router)
 app.include_router(agent.router)
+app.include_router(problems.router)
+app.include_router(attempts.router)
 
 
 @app.on_event("startup")

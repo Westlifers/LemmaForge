@@ -27,6 +27,15 @@
         :icon="Library"
       />
       <MetricCard
+        label="Problems"
+        :value="problems.length"
+        :detail="`${activeProblemCount} active / ${blockedProblemCount} blocked`"
+        :sparkline="problemTrend"
+        :icon="Target"
+        tone="blue"
+        spark-color="#2478d4"
+      />
+      <MetricCard
         label="Definitions"
         :value="definitionCount"
         :detail="`${notationCount} notation/context notes`"
@@ -215,6 +224,7 @@ import {
   Library,
   PencilRuler,
   Sigma,
+  Target,
   TriangleAlert,
 } from "lucide-vue-next";
 import DashboardTable from "../components/DashboardTable.vue";
@@ -227,12 +237,13 @@ import WorkspacePanel from "../components/WorkspacePanel.vue";
 import { api } from "../api/client";
 import { useAILogsStore, type AILogRun, type AILogStatus } from "../stores/aiLogs";
 import { useFragmentsStore } from "../stores/fragments";
-import type { ContextPack, Fragment, FragmentStatus, FragmentType, ImportBatch, Source, Topic } from "../types";
+import type { ContextPack, Fragment, FragmentStatus, FragmentType, ImportBatch, ResearchProblem, Source, Topic } from "../types";
 import { acceptedFragmentStatuses, unacceptedFragmentStatuses } from "../types";
 
 const store = useFragmentsStore();
 const aiLogs = useAILogsStore();
 const topics = ref<Topic[]>([]);
+const problems = ref<ResearchProblem[]>([]);
 const packs = ref<ContextPack[]>([]);
 const importBatches = ref<ImportBatch[]>([]);
 const sources = ref<Source[]>([]);
@@ -254,6 +265,8 @@ const propositionCount = computed(() => typeCount("Proposition"));
 const claimCount = computed(() => theoremCount.value + propositionCount.value + typeCount("Conjecture"));
 const proofSketchCount = computed(() => typeCount("ProofSketch"));
 const constructionCount = computed(() => typeCount("Construction"));
+const activeProblemCount = computed(() => problems.value.filter((item) => item.status === "active").length);
+const blockedProblemCount = computed(() => problems.value.filter((item) => item.status === "blocked").length);
 const unsortedCount = computed(() => fragments.value.filter((item) => !item.topic_id).length);
 const sortedPercent = computed(() => {
   if (!fragments.value.length) return 0;
@@ -288,6 +301,7 @@ const claimTrend = computed(() =>
   dateBuckets(fragments.value.filter((item) => ["Theorem", "Proposition", "Conjecture"].includes(item.type)), "updated_at")
 );
 const packTrend = computed(() => dateBuckets(packs.value, "updated_at"));
+const problemTrend = computed(() => dateBuckets(problems.value, "updated_at"));
 
 function statusCount(status: FragmentStatus) {
   return fragments.value.filter((item) => item.status === status).length;
@@ -355,6 +369,7 @@ function aiRunTone(status: AILogStatus) {
 function aiRunKindLabel(run: AILogRun) {
   if (run.kind === "context_suggest") return "Context suggestion";
   if (run.kind === "import_extract") return "Fragment extraction";
+  if (run.kind === "problem_summary") return "Problem proposal";
   return "AI operation";
 }
 
@@ -373,13 +388,15 @@ function relativeTime(value: string) {
 
 onMounted(async () => {
   await store.load();
-  const [topicResult, packResult, batchResult, sourceResult] = await Promise.all([
+  const [topicResult, problemResult, packResult, batchResult, sourceResult] = await Promise.all([
     api.listTopics(),
+    api.listProblems(),
     api.listContextPacks(),
     api.listImportBatches(),
     api.listSources(),
   ]);
   topics.value = topicResult;
+  problems.value = problemResult;
   packs.value = packResult;
   importBatches.value = batchResult;
   sources.value = sourceResult;

@@ -112,6 +112,19 @@ async function pollRunningJobs() {
           result: job.result,
           context: run.context,
         });
+      } else if (run.kind === "problem_summary") {
+        const job = await api.getProblemSummaryJob(run.id);
+        maybeShowSuccess(run.status, job.status, run.label);
+        logs.upsertRun({
+          id: job.job_id,
+          kind: "problem_summary",
+          label: run.label,
+          status: job.status,
+          logs: job.logs,
+          error: job.error,
+          result: job.result,
+          context: run.context,
+        });
       }
     } catch (caught) {
       logs.upsertRun({

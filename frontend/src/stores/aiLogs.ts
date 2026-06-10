@@ -5,7 +5,7 @@ const MAX_RUNS = 12;
 const MAX_LINES = 400;
 
 export type AILogStatus = "queued" | "running" | "succeeded" | "failed";
-export type AILogKind = "import_extract" | "context_suggest";
+export type AILogKind = "import_extract" | "context_suggest" | "problem_summary";
 
 export interface AILogRun {
   id: string;
@@ -98,6 +98,13 @@ export const useAILogsStore = defineStore("aiLogs", {
     clearRuns() {
       this.runs = [];
       this.activeRunId = "";
+      persistRuns(this.runs);
+    },
+    removeRun(id: string) {
+      this.runs = this.runs.filter((run) => run.id !== id);
+      if (this.activeRunId === id) {
+        this.activeRunId = this.runs[0]?.id || "";
+      }
       persistRuns(this.runs);
     },
   },

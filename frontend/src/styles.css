@@ -4379,6 +4379,725 @@ label,
   pointer-events: auto;
 }
 
+.problem-filter-card {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(180px, 240px);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.problem-list-grid,
+.problem-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.85fr) minmax(0, 1.6fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.problem-card-list {
+  display: grid;
+  gap: 14px;
+}
+
+.problem-card,
+.problem-fragment-card,
+.problem-proposal-card {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.problem-card > header,
+.problem-fragment-card > header,
+.problem-proposal-card > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.problem-title-link {
+  color: var(--text);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.problem-title-link:hover {
+  color: var(--accent);
+}
+
+.problem-card-meta,
+.topic-pill-list,
+.problem-link-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: end;
+}
+
+.problem-card-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.problem-editor,
+.problem-form-panel,
+.problem-fragments-panel,
+.problem-side-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.problem-workspace-grid {
+  grid-template-columns: minmax(300px, 0.9fr) minmax(360px, 1.4fr) minmax(300px, 0.9fr);
+}
+
+.problem-link-controls label {
+  min-width: 180px;
+  flex: 1 1 180px;
+}
+
+.problem-link-controls.compact {
+  align-items: center;
+}
+
+.problem-link-controls.compact select {
+  flex: 1 1 180px;
+}
+
+.problem-role-group {
+  display: grid;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.problem-role-group > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.problem-fragment-card {
+  display: grid;
+  gap: 10px;
+}
+
+.problem-fragment-card .card-tex-preview {
+  max-height: 160px;
+}
+
+.topic-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-alt);
+}
+
+.topic-pill a {
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.topic-pill button {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.topic-pill button:hover {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+
+.problem-proposal-card {
+  display: grid;
+  gap: 12px;
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+}
+
+.problem-proposal-card ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+@media (max-width: 1180px) {
+  .problem-list-grid,
+  .problem-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .problem-filter-card {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Graphical problem and attempt workspaces */
+
+.problem-graph-page {
+  max-width: none;
+  gap: 14px;
+}
+
+.problem-workspace-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--surface-solid) 88%, transparent);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: var(--blur);
+}
+
+.problem-workspace-topbar h1 {
+  margin: 6px 0 2px;
+  color: var(--text);
+  font-size: 26px;
+  line-height: 1.12;
+}
+
+.problem-workspace-topbar p {
+  max-width: 760px;
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.problem-graph-page > .topic-floating-message {
+  position: fixed;
+  top: 92px;
+}
+
+.problem-graph-shell {
+  display: grid;
+  grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) minmax(280px, 340px);
+  gap: 12px;
+  min-height: calc(100vh - 196px);
+}
+
+.problem-overview-panel,
+.problem-right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--surface-solid) 88%, transparent);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: var(--blur);
+}
+
+.problem-overview-panel {
+  position: sticky;
+  top: 98px;
+  max-height: calc(100vh - 124px);
+  overflow: auto;
+}
+
+.problem-overview-panel > header,
+.attempt-summary-panel > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.problem-overview-panel h2,
+.problem-right-panel h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+}
+
+.problem-overview-panel header p {
+  margin: 3px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.problem-overview-panel dl,
+.attempt-detail-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.problem-overview-panel dt,
+.attempt-detail-list dt {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.problem-overview-panel dd,
+.attempt-detail-list dd {
+  margin: 0 0 4px;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.problem-key-items,
+.problem-gap-list,
+.problem-drawer-body,
+.attempt-detail-list {
+  display: grid;
+  gap: 10px;
+}
+
+.problem-key-items {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.problem-key-items h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.problem-key-items p,
+.problem-gap-list p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.problem-key-items strong {
+  color: var(--accent-strong);
+  font-size: 18px;
+}
+
+.problem-main-workspace {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  min-width: 0;
+}
+
+.problem-view-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-solid) 84%, transparent);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: var(--blur);
+}
+
+.problem-view-tabs .spacer {
+  flex: 1 1 auto;
+}
+
+.problem-graph-stage {
+  position: relative;
+  min-height: 680px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 20% 12%, rgba(8, 124, 118, 0.08), transparent 24%),
+    radial-gradient(circle at 78% 36%, rgba(104, 104, 181, 0.08), transparent 28%),
+    linear-gradient(rgba(8, 124, 118, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(8, 124, 118, 0.04) 1px, transparent 1px),
+    var(--surface-solid);
+  background-size: auto, auto, 28px 28px, 28px 28px, auto;
+  box-shadow: var(--shadow-soft);
+}
+
+.problem-graph-stage::before {
+  content: "∀ ε > 0      ∃ δ > 0      Q → Attempt      fragments ↔ relations";
+  position: absolute;
+  inset: 22px 16px auto;
+  z-index: 1;
+  color: color-mix(in srgb, var(--text-muted) 18%, transparent);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 17px;
+  letter-spacing: 14px;
+  text-align: center;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.problem-flow {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  min-height: 680px;
+  background: transparent;
+}
+
+.problem-workspace-node {
+  width: 238px;
+  max-width: 238px;
+  overflow: hidden;
+  border: 1px solid rgba(8, 124, 118, 0.32);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--surface-solid) 88%, transparent);
+  box-shadow: 0 16px 34px rgba(16, 31, 32, 0.12);
+  backdrop-filter: blur(14px);
+}
+
+.problem-root-node,
+.attempt-root-node {
+  border-color: rgba(123, 97, 209, 0.58);
+  background: color-mix(in srgb, var(--surface-solid) 80%, rgba(123, 97, 209, 0.12));
+  box-shadow: 0 0 0 2px rgba(123, 97, 209, 0.16), 0 18px 38px rgba(61, 49, 141, 0.13);
+}
+
+.problem-node-content {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 9px;
+  align-items: center;
+  width: 100%;
+  min-height: 92px;
+  padding: 13px;
+}
+
+.problem-node-content strong {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.25;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.problem-node-content small {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.problem-node-content .chip {
+  grid-column: 2;
+  justify-self: start;
+}
+
+.problem-node-icon {
+  grid-row: span 3;
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(8, 124, 118, 0.22);
+  border-radius: 10px;
+  background: rgba(8, 124, 118, 0.08);
+  color: var(--accent-strong);
+}
+
+.problem-flow .vue-flow__edge-path {
+  filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.08));
+}
+
+.problem-flow .vue-flow__edge-text {
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.problem-flow .vue-flow__edge-textbg {
+  rx: 8px;
+}
+
+.problem-flow .vue-flow__handle {
+  width: 8px;
+  height: 8px;
+  border: 2px solid color-mix(in srgb, var(--surface-solid) 92%, transparent);
+  background: var(--accent-strong);
+  opacity: 0.78;
+}
+
+.problem-flow .vue-flow__node:hover .vue-flow__handle,
+.problem-flow .vue-flow__node.selected .vue-flow__handle {
+  opacity: 1;
+}
+
+.problem-floating-inspector {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(360px, calc(100% - 36px));
+  max-height: calc(100% - 36px);
+  overflow: auto;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--surface-solid) 90%, transparent);
+  box-shadow: 0 22px 54px rgba(13, 32, 36, 0.15);
+  backdrop-filter: blur(18px);
+}
+
+.problem-floating-inspector > header,
+.problem-attempt-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.problem-floating-inspector h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+}
+
+.problem-floating-inspector .card-tex-preview {
+  max-height: 210px;
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-alt);
+}
+
+.problem-right-panel {
+  max-height: calc(100vh - 124px);
+  overflow: auto;
+}
+
+.problem-right-panel > .plain-section,
+.problem-timeline-view,
+.problem-main-workspace > .plain-section {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-solid) 86%, transparent);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: var(--blur);
+}
+
+.problem-attempt-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-alt);
+}
+
+.problem-attempt-card p {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.problem-timeline-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-alt);
+}
+
+.problem-timeline-item p {
+  grid-column: 2;
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.problem-proposal-card header {
+  align-items: center;
+}
+
+.problem-attempt-modal {
+  display: grid;
+  gap: 0;
+  width: min(640px, calc(100vw - 32px));
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.problem-attempt-modal > header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 18px;
+  border-bottom: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(8, 124, 118, 0.12), transparent 38%),
+    color-mix(in srgb, var(--surface-solid) 86%, transparent);
+}
+
+.problem-attempt-modal h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 20px;
+}
+
+.problem-attempt-modal p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+}
+
+.problem-attempt-modal .modal-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(8, 124, 118, 0.24);
+  border-radius: 12px;
+  background: rgba(8, 124, 118, 0.1);
+  color: var(--accent-strong);
+}
+
+.problem-attempt-modal .modal-icon.danger {
+  border-color: rgba(180, 58, 72, 0.28);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.problem-attempt-modal-body {
+  display: grid;
+  gap: 13px;
+  padding: 18px;
+}
+
+.problem-attempt-modal-body textarea {
+  min-height: 112px;
+}
+
+.problem-attempt-modal > footer {
+  padding: 14px 18px 18px;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-solid) 70%, transparent);
+}
+
+.attempt-delete-modal > header {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(180, 58, 72, 0.14), transparent 38%),
+    color-mix(in srgb, var(--surface-solid) 86%, transparent);
+}
+
+.attempt-delete-modal-body {
+  display: grid;
+  gap: 8px;
+  margin: 18px;
+  padding: 14px;
+  border: 1px solid rgba(180, 58, 72, 0.24);
+  border-radius: 12px;
+  background: var(--danger-soft);
+}
+
+.attempt-delete-modal-body strong {
+  color: var(--danger);
+}
+
+.attempt-delete-modal-body p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.problem-drawer-body {
+  padding: 14px;
+}
+
+.problem-drawer-body .topic-add-candidate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.attempt-graph-shell .problem-overview-panel {
+  position: static;
+  max-height: none;
+}
+
+.attempt-summary-panel textarea {
+  min-height: 82px;
+}
+
+.attempt-detail-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.attempt-detail-tabs .button {
+  min-height: 30px;
+  padding: 5px 9px;
+}
+
+.attempt-flow .attempt-root-node {
+  border-color: rgba(8, 124, 118, 0.56);
+  background: color-mix(in srgb, var(--surface-solid) 80%, rgba(8, 124, 118, 0.12));
+}
+
+@media (max-width: 1280px) {
+  .problem-graph-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .problem-overview-panel,
+  .problem-right-panel {
+    position: static;
+    max-height: none;
+  }
+
+  .problem-graph-stage,
+  .problem-flow {
+    min-height: 720px;
+  }
+}
+
+@media (max-width: 760px) {
+  .problem-workspace-topbar,
+  .problem-view-tabs {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .problem-view-tabs .spacer {
+    display: none;
+  }
+
+  .problem-workspace-node {
+    width: 220px;
+    max-width: 220px;
+  }
+}
+
 /* Fullscreen topic graph workspace */
 
 .topic-fullscreen-page {
